@@ -1,0 +1,321 @@
+/* frontend/src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles - these will complement Tailwind */
+:root {
+  --primary-color: #4B5563; /* charcoal-600 */
+  --secondary-color: #374151; /* charcoal-700 */
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shadow utilities */
+.shadow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Custom animation for loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Gradient text utility */
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Charcoal gradient for brand elements */
+.bg-brand-gradient {
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+}
+
+/* Custom theme overrides - Use CSS variables for dynamic updates */
+/* These ensure Tailwind classes respect the dynamic colors */
+.bg-charcoal-500 { background-color: var(--primary-color); }
+.bg-charcoal-600 { background-color: var(--secondary-color); }
+.text-charcoal-500 { color: var(--primary-color); }
+.text-charcoal-600 { color: var(--secondary-color); }
+.from-charcoal-500 { --tw-gradient-from: var(--primary-color); }
+.to-charcoal-600 { --tw-gradient-to: var(--secondary-color); }
+.hover\:bg-charcoal-700:hover { background-color: color-mix(in srgb, var(--primary-color) 85%, black); }
+.focus\:ring-charcoal-500:focus { --tw-ring-color: var(--primary-color); }
+.focus\:border-charcoal-500:focus { border-color: var(--primary-color); }
+.border-t-charcoal-600 { border-top-color: var(--secondary-color); }
+
+/* Pulse One Input styles */
+.pulse-one-input {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-charcoal-500 focus:border-charcoal-500 text-gray-900 placeholder-gray-400;
+}
+
+.pulse-one-select {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-charcoal-500 focus:border-charcoal-500 text-gray-900;
+}
+
+.pulse-one-button-primary {
+  @apply inline-flex items-center px-4 py-2 bg-charcoal-600 text-white rounded-lg hover:bg-charcoal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500 transition-colors;
+}
+
+.pulse-one-button-secondary {
+  @apply inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500 transition-colors;
+}
+
+/* Styles for the Email Preview Deadline Box */
+.email-preview-deadline-box {
+  background-color: #FEF3C7; /* yellow-100 */
+  border: 1px solid #FDE68A; /* yellow-200 */
+  border-left: 4px solid #F59E0B; /* yellow-500 */
+  color: #92400E; /* yellow-900 */
+  padding: 0.75rem 1rem; /* py-3 px-4 */
+  border-radius: 0.375rem; /* rounded-md */
+  margin: 1.5rem 0; /* my-6 */
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem; /* text-sm */
+}
+.email-preview-deadline-box svg {
+  width: 1.125rem; height: 1.125rem; margin-right: 0.625rem; color: #F59E0B; flex-shrink: 0;
+}
+
+/* Outer container */
+.email-preview-container {
+  background-color: #f3f4f6; /* gray-100 */
+  padding: 2rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;
+}
+/* White card container */
+.email-preview-card {
+  background-color: #ffffff; border-radius: 0.5rem; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  max-width: 600px; margin: auto;
+}
+/* Header styling */
+.email-preview-header {
+  padding: 1.5rem; text-align: center; color: white; /* Gradient applied via inline style in TemplateEditor */
+}
+
+/* Body styling */
+.email-preview-body {
+  padding: 1.5rem 2rem; font-size: 0.875rem; line-height: 1.6; color: #374151;
+}
+
+/* START: Add default paragraph spacing within preview body */
+/* This ensures basic spacing, but inline styles in HTML can override */
+.email-preview-body p {
+  margin-bottom: 1rem; /* Default space below paragraphs */
+}
+.email-preview-body h1,
+.email-preview-body h2,
+.email-preview-body h3 {
+    margin-bottom: 0.75rem; /* Space below headings */
+    margin-top: 1.25rem; /* Space above headings */
+}
+.email-preview-body ul,
+.email-preview-body ol {
+    margin-bottom: 1rem; /* Space below lists */
+    padding-left: 1.5rem; /* Indent lists */
+}
+.email-preview-body li {
+    margin-bottom: 0.25rem; /* Space between list items */
+}
+
+/* Let inline styles from the HTML content take precedence */
+.email-preview-body a[style*="background-color"], /* Target links with inline background-color */
+.email-preview-body button {
+  /* Basic button appearance */
+  display: inline-block; /* Allows margin/padding */
+  padding: 10px 20px; /* Adjust padding as needed */
+  border-radius: 5px; /* Match backend style */
+  color: white; /* Default text color (can be overridden by inline) */
+  text-align: center;
+  font-weight: bold; /* Match backend style */
+  text-decoration: none; /* Remove underline for links */
+  border: none; /* Remove border for buttons */
+  cursor: pointer;
+  transition: filter 0.2s ease; /* Use filter for hover effect */
+
+  /* Add a subtle hover effect that works regardless of background color */
+}
+.email-preview-body a[style*="background-color"]:hover,
+.email-preview-body button:hover {
+  filter: brightness(90%); /* Slightly darken the button on hover */
+}
+
+/* Footer styling */
+.email-preview-footer {
+  padding: 1rem 1.5rem; text-align: center; font-size: 0.75rem; color: #6b7280;
+  border-top: 1px solid #e5e7eb; background-color: #f9fafb;
+}
+
+/* Email template preview styling */
+.email-preview-container {
+  font-family: Arial, sans-serif;
+  max-width: 100%;
+}
+
+.email-preview-card {
+  max-width: 600px;
+  margin: 0 auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.email-preview-header {
+  background: linear-gradient(to right, #4B5563, #374151);
+  color: white;
+  padding: 15px 20px;
+  text-align: center;
+}
+
+.email-preview-body {
+  padding: 20px;
+  color: #333;
+}
+
+.email-preview-body a {
+  display: inline-block;
+  background-color: #4B5563;
+  color: white !important;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.email-preview-deadline-box {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.email-preview-footer {
+  text-align: center;
+  padding: 10px;
+  color: #6B7280;
+  font-size: 12px;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Email Preview Styles */
+.email-preview-wrapper {
+  width: 100%;
+  overflow: auto;
+  max-height: 450px;
+}
+
+.email-preview-content {
+  color: #333;
+  font-family: Arial, sans-serif;
+}
+
+.email-preview-content a {
+  color: #4B5563 !important;
+  text-decoration: none !important;
+  font-weight: 500;
+}
+
+.email-preview-content a[style*="background-color"] {
+  background-color: #4B5563 !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border-radius: 4px !important;
+  display: inline-block !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+  margin: 8px 0 !important;
+}
+
+.email-preview-content div[style*="background-color: #FEF3C7"] {
+  background-color: #FEF3C7 !important;
+  padding: 10px !important;
+  border: 1px solid #FDE68A !important;
+  border-radius: 4px !important;
+  margin: 12px 0 !important;
+}
+
+/* Styles for the toggle switches */
+.toggle-checkbox:checked {
+  right: 0;
+  border-color: #fff;
+}
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #4B5563;
+}
+.toggle-label {
+  transition: background-color 0.2s ease;
+}
+
+/* Enhanced toggle switch styles */
+.toggle-checkbox:checked {
+  right: 0;
+  border-color: #fff;
+}
+
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #4B5563;
+}
+
+.toggle-label {
+  transition: background-color 0.2s ease;
+}
+
+/* Custom slider styles for better visual consistency */
+.slider-thumb-charcoal::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #4B5563;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider-thumb-charcoal::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #4B5563;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled slider styles */
+input[type="range"]:disabled::-webkit-slider-thumb {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+input[type="range"]:disabled::-moz-range-thumb {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Hover tooltip */
+.group:hover .group-hover\:block {
+  display: block;
+}

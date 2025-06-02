@@ -30,7 +30,7 @@ const SidebarNavItem = ({ href, icon: Icon, title, badge, end = false, customAct
         <Icon className="h-5 w-5" />
         <span className="flex-1">{title}</span>
         {badge && (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-blue-600">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-charcoal-600">
             {badge}
           </span>
         )}
@@ -53,7 +53,7 @@ const SidebarNavItem = ({ href, icon: Icon, title, badge, end = false, customAct
       <Icon className="h-5 w-5" />
       <span className="flex-1">{title}</span>
       {badge && (
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-blue-600">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold text-charcoal-600">
           {badge}
         </span>
       )}
@@ -77,15 +77,15 @@ export function MainLayout({ children }) {
         if (cachedSettings) {
           const parsed = JSON.parse(cachedSettings);
           setBrandingSettings(parsed);
-          document.documentElement.style.setProperty('--primary-color', parsed.primaryColor || '#3B82F6');
-          document.documentElement.style.setProperty('--secondary-color', parsed.secondaryColor || '#2563EB');
+          document.documentElement.style.setProperty('--primary-color', parsed.primaryColor || '#4B5563');
+          document.documentElement.style.setProperty('--secondary-color', parsed.secondaryColor || '#374151');
         }
 
         const response = await api.get('/settings/branding');
         if (response.data) {
           setBrandingSettings(response.data);
-          document.documentElement.style.setProperty('--primary-color', response.data.primaryColor || '#3B82F6');
-          document.documentElement.style.setProperty('--secondary-color', response.data.secondaryColor || '#2563EB');
+          document.documentElement.style.setProperty('--primary-color', response.data.primaryColor || '#4B5563');
+          document.documentElement.style.setProperty('--secondary-color', response.data.secondaryColor || '#374151');
           localStorage.setItem('brandingSettings', JSON.stringify(response.data));
         }
       } catch (error) {
@@ -185,13 +185,13 @@ export function MainLayout({ children }) {
       {/* Sidebar */}
       <aside
         id="sidebar-container"
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-blue-500 to-blue-600 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-charcoal-500 to-charcoal-600 transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:translate-x-0 md:z-0`}
       >
         <div className="flex h-16 items-center border-b border-white/10 px-6">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-blue-500">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-charcoal-500">
               <span className="text-lg font-bold">P1</span>
             </div>
             <span className="text-xl font-bold text-white">Pulse One</span>
@@ -259,10 +259,10 @@ export function MainLayout({ children }) {
             </button>
 
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-charcoal-500 to-charcoal-600 text-white">
                 <span className="text-lg font-bold">P1</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-charcoal-500 to-charcoal-600 bg-clip-text text-transparent">
                 {companyName}
               </span>
             </div>
@@ -285,7 +285,7 @@ export function MainLayout({ children }) {
             <div className="relative" id="user-menu">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium hover:bg-blue-200 transition-colors"
+                className="h-9 w-9 rounded-full bg-charcoal-100 flex items-center justify-center text-charcoal-600 font-medium hover:bg-charcoal-200 transition-colors"
               >
                 <User className="h-5 w-5" />
               </button>
