@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Palette, Save, RotateCcw, Eye, Copy, CheckCircle, AlertTriangle,
   RefreshCw, Info, Zap, Type, Image as ImageIcon, Settings as SettingsIcon
 } from 'lucide-react';
@@ -163,7 +163,7 @@ const BrandingSettings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8"> {/* Overall page vertical spacing */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -182,6 +182,7 @@ const BrandingSettings = () => {
             <Eye className="w-4 h-4 mr-2" />
             {previewMode ? 'Exit Preview' : 'Preview'}
           </button>
+
           <button
             onClick={handleReset}
             disabled={resetting}
@@ -190,11 +191,11 @@ const BrandingSettings = () => {
             <RotateCcw className={`w-4 h-4 mr-2 ${resetting ? 'animate-spin' : ''}`} />
             Reset to Default
           </button>
+
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50"
-            style={{ backgroundColor: 'var(--primary-color)' }}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <Save className={`w-4 h-4 mr-2 ${saving ? 'animate-pulse' : ''}`} />
             {saving ? 'Saving...' : 'Save Settings'}
@@ -233,252 +234,263 @@ const BrandingSettings = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Settings Panel */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8"> {/* Gap between main columns (settings panel vs preview panel) */}
+        {/* Settings Panel (Left/Main Column) */}
+        <div className="lg:col-span-2 space-y-8"> {/* Vertical spacing between cards in this panel */}
           
-          {/* Company Identity */}
+          {/* Company Identity Card */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-3 mb-6"> {/* Space below card title */}
               <div className="p-2 bg-blue-100 rounded-lg">
                 <SettingsIcon className="w-5 h-5 text-blue-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-900">Company Identity</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                <input
-                  type="text"
-                  value={settings.companyName}
-                  onChange={(e) => handleInputChange('companyName', e.target.value)}
+            <div className="space-y-6"> {/* Vertical spacing within this card's content */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Gap for side-by-side inputs */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                  <input
+                    type="text"
+                    value={settings.companyName}
+                    onChange={(e) => handleInputChange('companyName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
+                    placeholder="Enter company name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                  <select
+                    value={settings.industry}
+                    onChange={(e) => handleInputChange('industry', e.target.value)} // Corrected e.targe.value to e.target.value
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
+                  >
+                    <option value="Technology">Technology</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Education">Education</option>
+                    <option value="Manufacturing">Manufacturing</option>
+                    <option value="Retail">Retail</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div> {/* Key Values textarea */}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Key Values & Principles</label>
+                <textarea
+                  value={settings.keyValues}
+                  onChange={(e) => handleInputChange('keyValues', e.target.value)}
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
-                  placeholder="Enter company name"
+                  placeholder="Describe your company's core values and principles (e.g., Innovation, Integrity, Customer Focus)"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
-                <select
-                  value={settings.industry}
-                  onChange={(e) => handleInputChange('industry', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
-                >
-                  <option value="Technology">Technology</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Finance">Finance</option>
-                  <option value="Education">Education</option>
-                  <option value="Manufacturing">Manufacturing</option>
-                  <option value="Retail">Retail</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Key Values & Principles</label>
-              <textarea
-                value={settings.keyValues}
-                onChange={(e) => handleInputChange('keyValues', e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
-                placeholder="Describe your company's core values and principles (e.g., Innovation, Integrity, Customer Focus)"
-              />
             </div>
           </div>
 
-          {/* Company Colors */}
+          {/* Company Colors Card */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-3 mb-6"> {/* Space below card title */}
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Palette className="w-5 h-5 text-purple-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-900">Company Colors</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="color"
-                    value={settings.primaryColor}
-                    onChange={(e) => handleInputChange('primaryColor', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={settings.primaryColor}
-                    onChange={(e) => handleInputChange('primaryColor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent font-mono"
-                  />
-                  <button
-                    onClick={() => copyColorToClipboard(settings.primaryColor)}
-                    className="p-2 text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+            <div className="space-y-6"> {/* Vertical spacing within this card's content */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Gap for side-by-side color inputs */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={settings.primaryColor}
+                      onChange={(e) => handleInputChange('primaryColor', e.target.value)}
+                      className="w-12 h-10 p-0.5 border border-gray-300 rounded-md cursor-pointer overflow-hidden"
+                    />
+                    <input
+                      type="text"
+                      value={settings.primaryColor}
+                      onChange={(e) => handleInputChange('primaryColor', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent font-mono text-sm"
+                    />
+                    <button
+                      onClick={() => copyColorToClipboard(settings.primaryColor)}
+                      title="Copy primary color"
+                      className="p-2 border border-gray-300 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors shadow-sm" // Enhanced style
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1.5">Main color for headers, buttons and accents</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Main color for headers, buttons and accents</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Secondary Color</label>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="color"
-                    value={settings.secondaryColor}
-                    onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={settings.secondaryColor}
-                    onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent font-mono"
-                  />
-                  <button
-                    onClick={() => copyColorToClipboard(settings.secondaryColor)}
-                    className="p-2 text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Secondary Color</label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={settings.secondaryColor}
+                      onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
+                      className="w-12 h-10 p-0.5 border border-gray-300 rounded-md cursor-pointer overflow-hidden"
+                    />
+                    <input
+                      type="text"
+                      value={settings.secondaryColor}
+                      onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent font-mono text-sm"
+                    />
+                    <button
+                      onClick={() => copyColorToClipboard(settings.secondaryColor)}
+                      title="Copy secondary color"
+                      className="p-2 border border-gray-300 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors shadow-sm" // Enhanced style
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1.5">Secondary color for gradients and highlights</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Secondary color for gradients and highlights</p>
               </div>
-            </div>
 
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  handleInputChange('primaryColor', '#4B5563');
-                  handleInputChange('secondaryColor', '#374151');
-                }}
-                className="text-sm text-charcoal-600 hover:text-charcoal-800 flex items-center"
-              >
-                <RotateCcw className="w-4 h-4 mr-1" />
-                Revert to Default Colors
-              </button>
+              <div> {/* Revert to Default Colors button */}
+                <button
+                  onClick={() => {
+                    handleInputChange('primaryColor', '#4B5563');
+                    handleInputChange('secondaryColor', '#374151');
+                  }}
+                  className="text-sm text-charcoal-600 hover:text-charcoal-800 flex items-center mt-2"
+                >
+                  <RotateCcw className="w-4 h-4 mr-1.5" />
+                  Revert to Default Colors
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Communication Style */}
+          {/* Communication Style Card */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-3 mb-6"> {/* Space below card title */}
               <div className="p-2 bg-green-100 rounded-lg">
                 <Type className="w-5 h-5 text-green-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-900">Communication Style</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
-                <select
-                  value={settings.communicationTone}
-                  onChange={(e) => handleInputChange('communicationTone', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
-                >
-                  <option value="professional">Professional</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="casual">Casual</option>
-                  <option value="formal">Formal</option>
-                </select>
+            <div className="space-y-6"> {/* Vertical spacing within this card's content */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Gap for side-by-side selects */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                  <select
+                    value={settings.communicationTone}
+                    onChange={(e) => handleInputChange('communicationTone', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
+                  >
+                    <option value="professional">Professional</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="casual">Casual</option>
+                    <option value="formal">Formal</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Formality Level</label>
+                  <select
+                    value={settings.formalityLevel}
+                    onChange={(e) => handleInputChange('formalityLevel', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
+                  >
+                    <option value="very_formal">Very Formal</option>
+                    <option value="formal">Formal</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="informal">Informal</option>
+                    <option value="very_informal">Very Informal</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Personality</label>
+                  <select
+                    value={settings.personality}
+                    onChange={(e) => handleInputChange('personality', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
+                  >
+                    <option value="helpful">Helpful</option>
+                    <option value="enthusiastic">Enthusiastic</option>
+                    <option value="direct">Direct</option>
+                    <option value="empathetic">Empathetic</option>
+                    <option value="authoritative">Authoritative</option>
+                  </select>
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Formality Level</label>
-                <select
-                  value={settings.formalityLevel}
-                  onChange={(e) => handleInputChange('formalityLevel', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
-                >
-                  <option value="very_formal">Very Formal</option>
-                  <option value="formal">Formal</option>
-                  <option value="neutral">Neutral</option>
-                  <option value="informal">Informal</option>
-                  <option value="very_informal">Very Informal</option>
-                </select>
+              <div> {/* AI Sound Preview box */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <h4 className="text-sm font-semibold text-blue-900">Preview: How AI Will Sound</h4>
+                  </div>
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    {settings.communicationTone === 'professional' && settings.formalityLevel === 'formal' && settings.personality === 'helpful' 
+                      ? "We value your input and appreciate your participation. We are here to assist if you have any questions. We're here to support you throughout this process."
+                      : settings.communicationTone === 'friendly' && settings.personality === 'enthusiastic'
+                      ? "We'd love to hear your thoughts! Thanks for being part of this journey. Feel free to reach out anytime – we're excited to help!"
+                      : "Your communication style will be reflected in all AI-generated content based on your selected preferences."
+                    }
+                  </p>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Personality</label>
-                <select
-                  value={settings.personality}
-                  onChange={(e) => handleInputChange('personality', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-charcoal-500 focus:border-transparent"
-                >
-                  <option value="helpful">Helpful</option>
-                  <option value="enthusiastic">Enthusiastic</option>
-                  <option value="direct">Direct</option>
-                  <option value="empathetic">Empathetic</option>
-                  <option value="authoritative">Authoritative</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Info className="w-4 h-4 text-blue-600" />
-                <h4 className="text-sm font-medium text-blue-900">Preview: How AI Will Sound</h4>
-              </div>
-              <p className="text-sm text-blue-800">
-                {settings.communicationTone === 'professional' && settings.formalityLevel === 'formal' && settings.personality === 'helpful' 
-                  ? "We value your input and appreciate your participation. We are here to assist if you have any questions. We're here to support you throughout this process."
-                  : settings.communicationTone === 'friendly' && settings.personality === 'enthusiastic'
-                  ? "We'd love to hear your thoughts! Thanks for being part of this journey. Feel free to reach out anytime – we're excited to help!"
-                  : "Your communication style will be reflected in all AI-generated content based on your selected preferences."
-                }
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Preview Panel */}
+        {/* Preview Panel (Right Column) */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Color Preview</h3>
-            
-            {/* UI Elements Preview */}
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg" style={{ backgroundColor: settings.primaryColor }}>
-                <span className="text-white font-medium">Primary Button</span>
-              </div>
-              
-              <div className="p-4 rounded-lg border-2" style={{ borderColor: settings.primaryColor, color: settings.primaryColor }}>
-                <span className="font-medium">Text with primary color</span>
-              </div>
-              
-              <div 
-                className="p-4 rounded-lg text-white" 
-                style={{ 
-                  background: `linear-gradient(${settings.brandGradientDirection}, ${settings.primaryColor}, ${settings.secondaryColor})` 
-                }}
-              >
-                <span className="font-medium">Gradient Background</span>
+          <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-6 space-y-6"> {/* Vertical spacing within the preview panel */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Color Preview</h3>
+              <div className="space-y-4"> {/* Spacing for UI element previews */}
+                <div className="p-4 rounded-lg shadow-inner" style={{ backgroundColor: settings.primaryColor, minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="text-white font-medium text-sm">Primary Button</span>
+                </div>
+                
+                <div className="p-4 rounded-lg border-2 shadow-inner" style={{ borderColor: settings.primaryColor, color: settings.primaryColor, minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center'  }}>
+                  <span className="font-medium text-sm">Text with primary color</span>
+                </div>
+                
+                <div 
+                  className="p-4 rounded-lg text-white shadow-inner" 
+                  style={{ 
+                    background: `linear-gradient(${settings.brandGradientDirection || 'to right'}, ${settings.primaryColor}, ${settings.secondaryColor})`,
+                    minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                  }}
+                >
+                  <span className="font-medium text-sm">Gradient Background</span>
+                </div>
               </div>
             </div>
 
             {/* Sidebar Preview */}
-            <div className="mt-6">
+            <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">Sidebar Preview</h4>
               <div 
-                className="p-4 rounded-lg"
+                className="p-4 rounded-lg shadow-md"
                 style={{ 
                   background: `linear-gradient(to bottom, ${settings.primaryColor}, ${settings.secondaryColor})` 
                 }}
               >
                 <div className="flex items-center space-x-2 text-white mb-3">
-                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold"
+                  <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm"
                        style={{ color: settings.primaryColor }}>
                     P1
                   </div>
-                  <span className="font-semibold">Pulse One</span>
+                  <span className="font-semibold text-base">{settings.companyName?.split(' ')[0] || 'App'}</span>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-white/80 text-sm">Dashboard</div>
-                  <div className="text-white/60 text-sm">Knowledge Feed</div>
-                  <div className="text-white/60 text-sm">Analytics</div>
+                <div className="space-y-1.5">
+                  <div className="text-white/90 text-sm p-1.5 bg-white/10 rounded-md">Dashboard</div>
+                  <div className="text-white/70 text-sm p-1.5 hover:bg-white/5 rounded-md cursor-default">Knowledge Feed</div>
+                  <div className="text-white/70 text-sm p-1.5 hover:bg-white/5 rounded-md cursor-default">Analytics</div>
                 </div>
               </div>
             </div>
