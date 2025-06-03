@@ -34,7 +34,7 @@ const EnhancedKnowledgeFeed = () => {
       icon: Target,
       title: "Smart Categorization", 
       description: "AI suggests and creates new categories based on document content to improve organization.",
-      color: "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 text-blue-800"
+      color: "bg-gradient-to-r from-charcoal-50 to-charcoal-100 border-charcoal-200 text-charcoal-800"
     },
     {
       icon: Sparkles,
@@ -145,7 +145,7 @@ const EnhancedKnowledgeFeed = () => {
         tags: customTags.split(',').map(t => t.trim()).filter(t => t),
         isLegacy: isLegacyData,
         warnings: warnings,
-        suggestedCategory: null // Will be populated by AI if needed
+        suggestedCategory: null
       };
     });
 
@@ -283,7 +283,7 @@ const EnhancedKnowledgeFeed = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'processed': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'processing': return <Clock className="w-4 h-4 text-blue-500 animate-pulse" />;
+      case 'processing': return <Clock className="w-4 h-4 text-charcoal-500 animate-pulse" />;
       case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />;
       default: return <Clock className="w-4 h-4 text-gray-500" />;
     }
@@ -317,7 +317,8 @@ const EnhancedKnowledgeFeed = () => {
             loadUploadStatistics();
             loadInitialData();
           }}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors"
+          style={{ backgroundColor: 'var(--primary-color)' }}
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
@@ -329,8 +330,8 @@ const EnhancedKnowledgeFeed = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 10%, white)' }}>
+                <FileText className="w-5 h-5" style={{ color: 'var(--primary-color)' }} />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Documents</p>
@@ -384,7 +385,7 @@ const EnhancedKnowledgeFeed = () => {
                 <div
                   key={index}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentTipIndex ? 'bg-blue-500' : 'bg-gray-300'
+                    index === currentTipIndex ? 'bg-charcoal-500' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -416,7 +417,7 @@ const EnhancedKnowledgeFeed = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pulse-one-select"
               >
                 <option value="">Let AI suggest category</option>
                 {categories.map(cat => (
@@ -434,7 +435,7 @@ const EnhancedKnowledgeFeed = () => {
                 value={customTags}
                 onChange={(e) => setCustomTags(e.target.value)}
                 placeholder="tag1, tag2, tag3"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pulse-one-input"
               />
             </div>
             <div className="flex items-end">
@@ -443,7 +444,7 @@ const EnhancedKnowledgeFeed = () => {
                   type="checkbox"
                   checked={isLegacyData}
                   onChange={(e) => setIsLegacyData(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
                 />
                 <span className="ml-2 text-sm text-gray-700">Legacy Data</span>
               </label>
@@ -454,9 +455,12 @@ const EnhancedKnowledgeFeed = () => {
           <div
             className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               dragActive 
-                ? 'border-blue-400 bg-blue-50' 
+                ? 'border-charcoal-400' 
                 : 'border-gray-300 hover:border-gray-400'
             }`}
+            style={{
+              backgroundColor: dragActive ? 'color-mix(in srgb, var(--primary-color) 5%, white)' : 'transparent'
+            }}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
@@ -476,7 +480,7 @@ const EnhancedKnowledgeFeed = () => {
             <p className="text-gray-500 mb-4">
               Supports PDF, Word, Excel, PowerPoint, images, and text files up to {supportedTypes.maxSize ? Math.floor(supportedTypes.maxSize / (1024 * 1024)) : 100}MB each
             </p>
-            <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button className="btn-brand-primary">
               <Plus className="w-4 h-4 mr-2" />
               Choose Files
             </button>
@@ -541,7 +545,7 @@ const EnhancedKnowledgeFeed = () => {
                             <select
                               value={fileData.category}
                               onChange={(e) => updateFileCategory(fileData.id, e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-charcoal-500 focus:border-transparent"
                             >
                               <option value="">AI will suggest</option>
                               {categories.map(cat => (
@@ -558,7 +562,7 @@ const EnhancedKnowledgeFeed = () => {
                               value={fileData.tags.join(', ')}
                               onChange={(e) => updateFileTags(fileData.id, e.target.value)}
                               placeholder="tag1, tag2"
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-charcoal-500 focus:border-transparent"
                             />
                           </div>
                           <div className="flex items-center">
@@ -567,7 +571,7 @@ const EnhancedKnowledgeFeed = () => {
                                 type="checkbox"
                                 checked={fileData.isLegacy}
                                 onChange={(e) => updateFileLegacy(fileData.id, e.target.checked)}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
                               />
                               <span className="ml-2 text-xs text-gray-700">Legacy Data</span>
                             </label>
@@ -581,21 +585,24 @@ const EnhancedKnowledgeFeed = () => {
               
               {/* Upload Progress */}
               {Object.keys(uploadProgress).length > 0 && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 5%, white)' }}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-900">
+                    <span className="text-sm font-medium" style={{ color: 'var(--secondary-color)' }}>
                       {uploadProgress.error ? 'Upload Failed' : 
                        uploading ? 'Uploading...' : 'Processing...'}
                     </span>
                     {uploadProgress.overall && (
-                      <span className="text-sm text-blue-700">{uploadProgress.overall}%</span>
+                      <span className="text-sm" style={{ color: 'var(--primary-color)' }}>{uploadProgress.overall}%</span>
                     )}
                   </div>
                   {uploadProgress.overall && (
-                    <div className="w-full bg-blue-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress.overall}%` }}
+                        className="h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${uploadProgress.overall}%`,
+                          backgroundColor: 'var(--primary-color)'
+                        }}
                       ></div>
                     </div>
                   )}
@@ -609,7 +616,7 @@ const EnhancedKnowledgeFeed = () => {
                 <button
                   onClick={handleUpload}
                   disabled={uploading || files.length === 0 || files.some(f => f.warnings?.some(w => w.type === 'error'))}
-                  className="inline-flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploading ? (
                     <>
@@ -666,7 +673,11 @@ const EnhancedKnowledgeFeed = () => {
                       {upload.tags && upload.tags.length > 0 && (
                         <div className="mt-1">
                           {upload.tags.slice(0, 3).map((tag, index) => (
-                            <span key={index} className="inline-block mr-1 px-1 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                            <span key={index} className="inline-block mr-1 px-1 py-0.5 text-xs rounded" 
+                                  style={{ 
+                                    backgroundColor: 'color-mix(in srgb, var(--primary-color) 10%, white)',
+                                    color: 'var(--primary-color)'
+                                  }}>
                               {tag}
                             </span>
                           ))}
@@ -689,8 +700,11 @@ const EnhancedKnowledgeFeed = () => {
                         <div className="mt-1">
                           <div className="w-16 bg-gray-200 rounded-full h-1">
                             <div 
-                              className="bg-blue-500 h-1 rounded-full transition-all duration-300" 
-                              style={{ width: `${upload.processingJob.progress}%` }}
+                              className="h-1 rounded-full transition-all duration-300" 
+                              style={{ 
+                                width: `${upload.processingJob.progress}%`,
+                                backgroundColor: 'var(--primary-color)'
+                              }}
                             ></div>
                           </div>
                         </div>

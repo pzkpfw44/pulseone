@@ -4,16 +4,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles - these will complement Tailwind */
+/* Base styles with dynamic branding support */
 :root {
   --primary-color: #4B5563; /* charcoal-600 */
   --secondary-color: #374151; /* charcoal-700 */
+  --accent-color: #6B7280; /* charcoal-500 */
+  --background-color: #F9FAFB; /* charcoal-50 */
+  --brand-primary: #4B5563;
+  --brand-secondary: #374151;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dynamic brand color utilities */
+.bg-brand-primary { 
+  background-color: var(--primary-color) !important; 
+}
+
+.bg-brand-secondary { 
+  background-color: var(--secondary-color) !important; 
+}
+
+.bg-brand-accent { 
+  background-color: var(--accent-color) !important; 
+}
+
+.text-brand-primary { 
+  color: var(--primary-color) !important; 
+}
+
+.text-brand-secondary { 
+  color: var(--secondary-color) !important; 
+}
+
+.text-brand-accent { 
+  color: var(--accent-color) !important; 
+}
+
+.border-brand-primary { 
+  border-color: var(--primary-color) !important; 
+}
+
+.border-brand-secondary { 
+  border-color: var(--secondary-color) !important; 
+}
+
+.border-brand-accent { 
+  border-color: var(--accent-color) !important; 
+}
+
+/* Brand gradient utility */
+.bg-brand-gradient {
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color)) !important;
 }
 
 /* Shadow utilities */
@@ -42,184 +89,218 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Charcoal gradient for brand elements */
-.bg-brand-gradient {
-  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+/* Enhanced Tailwind overrides with dynamic colors */
+.bg-charcoal-500 { background-color: var(--accent-color); }
+.bg-charcoal-600 { background-color: var(--primary-color); }
+.bg-charcoal-700 { background-color: var(--secondary-color); }
+.text-charcoal-500 { color: var(--accent-color); }
+.text-charcoal-600 { color: var(--primary-color); }
+.text-charcoal-700 { color: var(--secondary-color); }
+.from-charcoal-500 { --tw-gradient-from: var(--accent-color); }
+.from-charcoal-600 { --tw-gradient-from: var(--primary-color); }
+.to-charcoal-600 { --tw-gradient-to: var(--primary-color); }
+.to-charcoal-700 { --tw-gradient-to: var(--secondary-color); }
+.hover\:bg-charcoal-700:hover { background-color: color-mix(in srgb, var(--primary-color) 85%, black); }
+.hover\:bg-charcoal-200:hover { background-color: color-mix(in srgb, var(--primary-color) 15%, white); }
+.hover\:border-charcoal-300:hover { border-color: color-mix(in srgb, var(--primary-color) 30%, white); }
+.focus\:ring-charcoal-500:focus { --tw-ring-color: var(--accent-color); }
+.focus\:border-charcoal-500:focus { border-color: var(--accent-color); }
+.border-t-charcoal-600 { border-top-color: var(--primary-color); }
+
+/* Enhanced focus states with dynamic colors */
+.focus\:ring-2:focus {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
-/* Custom theme overrides - Use CSS variables for dynamic updates */
-/* These ensure Tailwind classes respect the dynamic colors */
-.bg-charcoal-500 { background-color: var(--primary-color); }
-.bg-charcoal-600 { background-color: var(--secondary-color); }
-.text-charcoal-500 { color: var(--primary-color); }
-.text-charcoal-600 { color: var(--secondary-color); }
-.from-charcoal-500 { --tw-gradient-from: var(--primary-color); }
-.to-charcoal-600 { --tw-gradient-to: var(--secondary-color); }
-.hover\:bg-charcoal-700:hover { background-color: color-mix(in srgb, var(--primary-color) 85%, black); }
-.focus\:ring-charcoal-500:focus { --tw-ring-color: var(--primary-color); }
-.focus\:border-charcoal-500:focus { border-color: var(--primary-color); }
-.border-t-charcoal-600 { border-top-color: var(--secondary-color); }
-
-/* Pulse One Input styles */
+/* Form elements with dynamic branding */
 .pulse-one-input {
-  @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-charcoal-500 focus:border-charcoal-500 text-gray-900 placeholder-gray-400;
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 transition-colors;
+  --tw-ring-color: var(--primary-color);
+}
+
+.pulse-one-input:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  border-color: var(--primary-color);
 }
 
 .pulse-one-select {
-  @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-charcoal-500 focus:border-charcoal-500 text-gray-900;
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 transition-colors;
+  --tw-ring-color: var(--primary-color);
+}
+
+.pulse-one-select:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  border-color: var(--primary-color);
 }
 
 .pulse-one-button-primary {
-  @apply inline-flex items-center px-4 py-2 bg-charcoal-600 text-white rounded-lg hover:bg-charcoal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500 transition-colors;
+  @apply inline-flex items-center px-4 py-2 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
+  background-color: var(--primary-color);
+  --tw-ring-color: var(--primary-color);
+}
+
+.pulse-one-button-primary:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 90%, black);
 }
 
 .pulse-one-button-secondary {
-  @apply inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500 transition-colors;
+  @apply inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors;
+  --tw-ring-color: var(--primary-color);
 }
 
-/* Styles for the Email Preview Deadline Box */
+/* Enhanced button variants with dynamic colors */
+.btn-brand-primary {
+  @apply inline-flex items-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  background-color: var(--primary-color);
+  --tw-ring-color: var(--primary-color);
+}
+
+.btn-brand-primary:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 90%, black);
+}
+
+.btn-brand-primary:disabled {
+  background-color: color-mix(in srgb, var(--primary-color) 50%, white);
+  cursor: not-allowed;
+}
+
+.btn-brand-outline {
+  @apply inline-flex items-center px-4 py-2 border-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  --tw-ring-color: var(--primary-color);
+}
+
+.btn-brand-outline:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Checkbox and radio with dynamic colors */
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  --tw-ring-color: var(--primary-color);
+}
+
+/* Email Preview Styles with dynamic colors */
 .email-preview-deadline-box {
-  background-color: #FEF3C7; /* yellow-100 */
-  border: 1px solid #FDE68A; /* yellow-200 */
-  border-left: 4px solid #F59E0B; /* yellow-500 */
-  color: #92400E; /* yellow-900 */
-  padding: 0.75rem 1rem; /* py-3 px-4 */
-  border-radius: 0.375rem; /* rounded-md */
-  margin: 1.5rem 0; /* my-6 */
+  background-color: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-left: 4px solid #F59E0B;
+  color: #92400E;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin: 1.5rem 0;
   display: flex;
   align-items: center;
-  font-size: 0.875rem; /* text-sm */
+  font-size: 0.875rem;
 }
+
 .email-preview-deadline-box svg {
-  width: 1.125rem; height: 1.125rem; margin-right: 0.625rem; color: #F59E0B; flex-shrink: 0;
+  width: 1.125rem; 
+  height: 1.125rem; 
+  margin-right: 0.625rem; 
+  color: #F59E0B; 
+  flex-shrink: 0;
 }
 
-/* Outer container */
 .email-preview-container {
-  background-color: #f3f4f6; /* gray-100 */
-  padding: 2rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+  padding: 2rem; 
+  border-radius: 0.5rem; 
+  border: 1px solid #e5e7eb;
 }
-/* White card container */
+
 .email-preview-card {
-  background-color: #ffffff; border-radius: 0.5rem; overflow: hidden;
+  background-color: #ffffff; 
+  border-radius: 0.5rem; 
+  overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-  max-width: 600px; margin: auto;
+  max-width: 600px; 
+  margin: auto;
 }
-/* Header styling */
+
 .email-preview-header {
-  padding: 1.5rem; text-align: center; color: white; /* Gradient applied via inline style in TemplateEditor */
+  padding: 1.5rem; 
+  text-align: center; 
+  color: white;
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
 }
 
-/* Body styling */
 .email-preview-body {
-  padding: 1.5rem 2rem; font-size: 0.875rem; line-height: 1.6; color: #374151;
+  padding: 1.5rem 2rem; 
+  font-size: 0.875rem; 
+  line-height: 1.6; 
+  color: #374151;
 }
 
-/* START: Add default paragraph spacing within preview body */
-/* This ensures basic spacing, but inline styles in HTML can override */
 .email-preview-body p {
-  margin-bottom: 1rem; /* Default space below paragraphs */
+  margin-bottom: 1rem;
 }
+
 .email-preview-body h1,
 .email-preview-body h2,
 .email-preview-body h3 {
-    margin-bottom: 0.75rem; /* Space below headings */
-    margin-top: 1.25rem; /* Space above headings */
+    margin-bottom: 0.75rem;
+    margin-top: 1.25rem;
 }
+
 .email-preview-body ul,
 .email-preview-body ol {
-    margin-bottom: 1rem; /* Space below lists */
-    padding-left: 1.5rem; /* Indent lists */
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
 }
+
 .email-preview-body li {
-    margin-bottom: 0.25rem; /* Space between list items */
+    margin-bottom: 0.25rem;
 }
 
-/* Let inline styles from the HTML content take precedence */
-.email-preview-body a[style*="background-color"], /* Target links with inline background-color */
+.email-preview-body a[style*="background-color"],
 .email-preview-body button {
-  /* Basic button appearance */
-  display: inline-block; /* Allows margin/padding */
-  padding: 10px 20px; /* Adjust padding as needed */
-  border-radius: 5px; /* Match backend style */
-  color: white; /* Default text color (can be overridden by inline) */
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 5px;
+  color: white;
   text-align: center;
-  font-weight: bold; /* Match backend style */
-  text-decoration: none; /* Remove underline for links */
-  border: none; /* Remove border for buttons */
+  font-weight: bold;
+  text-decoration: none;
+  border: none;
   cursor: pointer;
-  transition: filter 0.2s ease; /* Use filter for hover effect */
-
-  /* Add a subtle hover effect that works regardless of background color */
+  transition: filter 0.2s ease;
+  background-color: var(--primary-color) !important;
 }
+
 .email-preview-body a[style*="background-color"]:hover,
 .email-preview-body button:hover {
-  filter: brightness(90%); /* Slightly darken the button on hover */
-}
-
-/* Footer styling */
-.email-preview-footer {
-  padding: 1rem 1.5rem; text-align: center; font-size: 0.75rem; color: #6b7280;
-  border-top: 1px solid #e5e7eb; background-color: #f9fafb;
-}
-
-/* Email template preview styling */
-.email-preview-container {
-  font-family: Arial, sans-serif;
-  max-width: 100%;
-}
-
-.email-preview-card {
-  max-width: 600px;
-  margin: 0 auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.email-preview-header {
-  background: linear-gradient(to right, #4B5563, #374151);
-  color: white;
-  padding: 15px 20px;
-  text-align: center;
-}
-
-.email-preview-body {
-  padding: 20px;
-  color: #333;
-}
-
-.email-preview-body a {
-  display: inline-block;
-  background-color: #4B5563;
-  color: white !important;
-  padding: 10px 20px;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: bold;
-  margin: 10px 0;
-}
-
-.email-preview-deadline-box {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #FEF3C7;
-  border: 1px solid #FDE68A;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
+  filter: brightness(90%);
 }
 
 .email-preview-footer {
-  text-align: center;
-  padding: 10px;
-  color: #6B7280;
-  font-size: 12px;
+  padding: 1rem 1.5rem; 
+  text-align: center; 
+  font-size: 0.75rem; 
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb; 
   background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
 }
 
-/* Email Preview Styles */
+/* Email Preview Content Styles */
 .email-preview-wrapper {
   width: 100%;
   overflow: auto;
@@ -232,13 +313,13 @@ body {
 }
 
 .email-preview-content a {
-  color: #4B5563 !important;
+  color: var(--primary-color) !important;
   text-decoration: none !important;
   font-weight: 500;
 }
 
 .email-preview-content a[style*="background-color"] {
-  background-color: #4B5563 !important;
+  background-color: var(--primary-color) !important;
   color: white !important;
   padding: 8px 16px !important;
   border-radius: 4px !important;
@@ -248,47 +329,27 @@ body {
   margin: 8px 0 !important;
 }
 
-.email-preview-content div[style*="background-color: #FEF3C7"] {
-  background-color: #FEF3C7 !important;
-  padding: 10px !important;
-  border: 1px solid #FDE68A !important;
-  border-radius: 4px !important;
-  margin: 12px 0 !important;
-}
-
-/* Styles for the toggle switches */
-.toggle-checkbox:checked {
-  right: 0;
-  border-color: #fff;
-}
-.toggle-checkbox:checked + .toggle-label {
-  background-color: #4B5563;
-}
-.toggle-label {
-  transition: background-color 0.2s ease;
-}
-
-/* Enhanced toggle switch styles */
+/* Toggle switches with dynamic colors */
 .toggle-checkbox:checked {
   right: 0;
   border-color: #fff;
 }
 
 .toggle-checkbox:checked + .toggle-label {
-  background-color: #4B5563;
+  background-color: var(--primary-color);
 }
 
 .toggle-label {
   transition: background-color 0.2s ease;
 }
 
-/* Custom slider styles for better visual consistency */
+/* Custom slider styles */
 .slider-thumb-charcoal::-webkit-slider-thumb {
   appearance: none;
   height: 20px;
   width: 20px;
   border-radius: 50%;
-  background: #4B5563;
+  background: var(--primary-color);
   cursor: pointer;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -298,13 +359,12 @@ body {
   height: 20px;
   width: 20px;
   border-radius: 50%;
-  background: #4B5563;
+  background: var(--primary-color);
   cursor: pointer;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Disabled slider styles */
 input[type="range"]:disabled::-webkit-slider-thumb {
   background: #9ca3af;
   cursor: not-allowed;
@@ -318,4 +378,81 @@ input[type="range"]:disabled::-moz-range-thumb {
 /* Hover tooltip */
 .group:hover .group-hover\:block {
   display: block;
+}
+
+/* Dynamic color utilities for specific states */
+.hover\:bg-charcoal-50:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 5%, white);
+}
+
+.hover\:bg-charcoal-100:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 10%, white);
+}
+
+.hover\:text-charcoal-600:hover {
+  color: var(--primary-color);
+}
+
+.hover\:text-charcoal-700:hover {
+  color: var(--secondary-color);
+}
+
+.hover\:text-charcoal-800:hover {
+  color: color-mix(in srgb, var(--secondary-color) 85%, black);
+}
+
+/* Ring colors for focus states */
+.focus\:ring-charcoal-500:focus {
+  --tw-ring-opacity: 0.5;
+  --tw-ring-color: var(--accent-color);
+}
+
+/* Border colors */
+.border-charcoal-200 {
+  border-color: color-mix(in srgb, var(--primary-color) 20%, white);
+}
+
+.border-charcoal-300 {
+  border-color: color-mix(in srgb, var(--primary-color) 30%, white);
+}
+
+/* Background colors */
+.bg-charcoal-50 {
+  background-color: color-mix(in srgb, var(--primary-color) 5%, white);
+}
+
+.bg-charcoal-100 {
+  background-color: color-mix(in srgb, var(--primary-color) 10%, white);
+}
+
+.bg-charcoal-200 {
+  background-color: color-mix(in srgb, var(--primary-color) 20%, white);
+}
+
+/* Additional brand color variants */
+.text-charcoal-800 {
+  color: color-mix(in srgb, var(--secondary-color) 85%, black);
+}
+
+.text-charcoal-900 {
+  color: color-mix(in srgb, var(--secondary-color) 70%, black);
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .email-preview-container {
+    padding: 1rem;
+  }
+  
+  .email-preview-body {
+    padding: 1rem 1.5rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .bg-brand-gradient {
+    background: var(--primary-color) !important;
+    -webkit-print-color-adjust: exact;
+  }
 }

@@ -1,11 +1,11 @@
-// backend/server.js - Enhanced with AI Configuration
+// backend/server.js
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
 // Import database initialization
-const { initializeDatabase, SystemSetting } = require('./models');
+const { initializeDatabase } = require('./models');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,50 +18,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve uploaded files statically (for development)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Initialize database and AI configuration
-async function initializeServer() {
-  try {
-    await initializeDatabase();
-    
-    // Initialize AI configuration from environment variables if not exists
-    await initializeAiConfiguration();
-    
-    console.log('✅ Server initialization complete');
-  } catch (error) {
-    console.error('❌ Server initialization failed:', error);
-  }
-}
-
-// Initialize AI configuration with environment variables
-async function initializeAiConfiguration() {
-  try {
-    const existingConfig = await SystemSetting.findOne({
-      where: { key: 'ai_configuration' }
-    });
-
-    if (!existingConfig && process.env.FLUX_AI_API_KEY) {
-      await SystemSetting.create({
-        key: 'ai_configuration',
-        value: {
-          fluxApiKey: process.env.FLUX_AI_API_KEY,
-          model: process.env.FLUX_AI_MODEL || 'DeepSeek R1 Distill Qwen 32B',
-          temperature: parseFloat(process.env.DEFAULT_AI_TEMPERATURE) || 0.7,
-          maxTokens: parseInt(process.env.DEFAULT_AI_MAX_TOKENS) || 2000,
-          enableSafetyFilters: process.env.ENABLE_AI_SAFETY_FILTERS !== 'false',
-          enableBiasDetection: process.env.ENABLE_AI_BIAS_DETECTION !== 'false',
-          enableContentModeration: process.env.ENABLE_AI_CONTENT_MODERATION !== 'false'
-        },
-        category: 'ai'
-      });
-      console.log('✅ AI configuration initialized from environment variables');
-    }
-  } catch (error) {
-    console.error('Error initializing AI configuration:', error);
-  }
-}
-
-// Initialize server
-initializeServer();
+// Initialize database
+initializeDatabase().catch(console.error);
 
 // Basic health check
 app.get('/api/health', (req, res) => {
@@ -69,12 +27,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     message: 'Pulse One API is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    features: {
-      knowledgeFeed: true,
-      aiCategorization: !!process.env.FLUX_AI_API_KEY,
-      fluxAiIntegration: true
-    }
+    version: '1.0.0'
   });
 });
 
@@ -120,9 +73,9 @@ app.get('/api/auth/profile', (req, res) => {
 const knowledgeFeedRoutes = require('./routes/knowledge-feed.routes');
 app.use('/api/knowledge-feed', knowledgeFeedRoutes);
 
-// AI Configuration routes - NEW
-const aiConfigurationRoutes = require('./routes/ai-configuration.routes');
-app.use('/api/ai-configuration', aiConfigurationRoutes);
+// Branding Settings routes
+const brandingRoutes = require('./routes/branding-settings.routes');
+app.use('/api/settings/branding', brandingRoutes);
 
 // Original Pulse One routes (for backward compatibility)
 const pulseOneRoutes = require('./routes/pulse-one.routes');
@@ -147,12 +100,6 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
     // Get processing statistics
     const totalJobs = await ProcessingJob.count();
     const completedJobs = await ProcessingJob.count({ where: { status: 'completed' } });
-    
-    // Check AI configuration status
-    const aiConfig = await SystemSetting.findOne({
-      where: { key: 'ai_configuration' }
-    });
-    const isAiConfigured = !!(aiConfig && aiConfig.value && aiConfig.value.fluxApiKey);
     
     res.json({
       connectedModules: { 
@@ -184,11 +131,6 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
         value: totalJobs.toString(),
         subtitle: `${completedJobs} completed`,
         trend: completedJobs > 0 ? 8 : 0
-      },
-      aiStatus: {
-        value: isAiConfigured ? 'Active' : 'Not Configured',
-        subtitle: isAiConfigured ? 'Flux AI ready' : 'Configure in settings',
-        trend: isAiConfigured ? 5 : -5
       }
     });
     
@@ -199,10 +141,7 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
       connectedModules: { value: '1', subtitle: 'Pulse 360 active' },
       totalDocuments: { value: '0', subtitle: 'Ready for analysis' },
       ragQueries: { value: '0', subtitle: 'AI interactions' },
-      syncStatus: { value: '100%', subtitle: 'All systems synced' },
-      categories: { value: '7', subtitle: 'Default categories' },
-      processingJobs: { value: '0', subtitle: 'No jobs running' },
-      aiStatus: { value: 'Unknown', subtitle: 'Check configuration' }
+      syncStatus: { value: '100%', subtitle: 'All systems synced' }
     });
   }
 });
@@ -255,5 +194,5 @@ app.listen(PORT, () => {
   console.log(`📁 File uploads will be stored in: ${path.join(__dirname, 'uploads')}`);
   console.log(`🗄️  Database location: ${path.join(__dirname, 'data/pulse_one.db')}`);
   console.log(`🌐 API Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`🤖 AI Configuration: ${process.env.FLUX_AI_API_KEY ? 'Configured' : 'Not configured'}`);
+  console.log(`🎨 Branding Settings: http://localhost:${PORT}/api/settings/branding`);
 });

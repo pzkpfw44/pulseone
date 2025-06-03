@@ -68,7 +68,7 @@ export function MainLayout({ children }) {
   const [versionInfo, setVersionInfo] = useState(null);
   const [versionError, setVersionError] = useState('');
 
-  // Fetch branding settings
+  // Fetch branding settings and apply them
   useEffect(() => {
     const fetchBrandingSettings = async () => {
       try {
@@ -76,24 +76,37 @@ export function MainLayout({ children }) {
         if (cachedSettings) {
           const parsed = JSON.parse(cachedSettings);
           setBrandingSettings(parsed);
-          document.documentElement.style.setProperty('--primary-color', parsed.primaryColor || '#4B5563');
-          document.documentElement.style.setProperty('--secondary-color', parsed.secondaryColor || '#374151');
+          applyBrandingColors(parsed);
         }
 
         const response = await api.get('/settings/branding');
         if (response.data) {
           setBrandingSettings(response.data);
-          document.documentElement.style.setProperty('--primary-color', response.data.primaryColor || '#4B5563');
-          document.documentElement.style.setProperty('--secondary-color', response.data.secondaryColor || '#374151');
+          applyBrandingColors(response.data);
           localStorage.setItem('brandingSettings', JSON.stringify(response.data));
         }
       } catch (error) {
         console.error('Error fetching branding settings:', error);
+        // Apply default charcoal colors if branding settings fail
+        applyBrandingColors({
+          primaryColor: '#4B5563',
+          secondaryColor: '#374151'
+        });
       }
     };
 
     fetchBrandingSettings();
   }, []);
+
+  const applyBrandingColors = (settings) => {
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', settings.primaryColor || '#4B5563');
+    root.style.setProperty('--secondary-color', settings.secondaryColor || '#374151');
+    
+    // Apply to other brand elements
+    root.style.setProperty('--brand-primary', settings.primaryColor || '#4B5563');
+    root.style.setProperty('--brand-secondary', settings.secondaryColor || '#374151');
+  };
 
   // Fetch version information
   useEffect(() => {
@@ -166,16 +179,20 @@ export function MainLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Sidebar with dynamic branding colors */}
       <aside
         id="sidebar-container"
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-charcoal-500 to-charcoal-600 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:translate-x-0 md:z-0`}
+        style={{
+          background: `linear-gradient(to bottom, var(--primary-color), var(--secondary-color))`
+        }}
       >
         <div className="flex h-16 items-center border-b border-white/10 px-6">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-charcoal-500">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white" 
+                 style={{ color: 'var(--primary-color)' }}>
               <span className="text-lg font-bold">P1</span>
             </div>
             <span className="text-xl font-bold text-white">Pulse One</span>
@@ -243,10 +260,17 @@ export function MainLayout({ children }) {
             </button>
 
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-charcoal-500 to-charcoal-600 text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                   style={{ background: `linear-gradient(to right, var(--primary-color), var(--secondary-color))` }}>
                 <span className="text-lg font-bold">P1</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-charcoal-500 to-charcoal-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold" 
+                    style={{ 
+                      background: `linear-gradient(to right, var(--primary-color), var(--secondary-color))`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}>
                 {companyName}
               </span>
             </div>

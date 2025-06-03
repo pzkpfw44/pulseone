@@ -13,7 +13,7 @@ const DashboardCard = ({ children, className = "", onClick, hover = false }) => 
   return (
     <div 
       className={`bg-white rounded-xl shadow-sm border hover:shadow-md transition-all duration-200 ${
-        hover ? 'cursor-pointer hover:border-blue-200' : ''
+        hover ? 'cursor-pointer hover:border-charcoal-200' : ''
       } ${className}`}
       onClick={onClick}
     >
@@ -23,9 +23,9 @@ const DashboardCard = ({ children, className = "", onClick, hover = false }) => 
 };
 
 // Enhanced Metric card with real data support
-const MetricCard = ({ title, rawData, icon: Icon, isLoading, error, color = "blue" }) => {
+const MetricCard = ({ title, rawData, icon: Icon, isLoading, error, color = "charcoal" }) => {
   const colorClasses = {
-    blue: "bg-blue-500 text-white",
+    charcoal: "bg-charcoal-500 text-white",
     green: "bg-green-500 text-white", 
     purple: "bg-purple-500 text-white",
     orange: "bg-orange-500 text-white",
@@ -72,9 +72,9 @@ const MetricCard = ({ title, rawData, icon: Icon, isLoading, error, color = "blu
 };
 
 // Quick action button component
-const QuickActionButton = ({ icon: Icon, title, description, onClick, color = "blue" }) => {
+const QuickActionButton = ({ icon: Icon, title, description, onClick, color = "charcoal" }) => {
   const colorClasses = {
-    blue: "border-blue-200 hover:border-blue-300 hover:bg-blue-50",
+    charcoal: "border-charcoal-200 hover:border-charcoal-300 hover:bg-charcoal-50",
     green: "border-green-200 hover:border-green-300 hover:bg-green-50",
     purple: "border-purple-200 hover:border-purple-300 hover:bg-purple-50",
     orange: "border-orange-200 hover:border-orange-300 hover:bg-orange-50",
@@ -82,7 +82,7 @@ const QuickActionButton = ({ icon: Icon, title, description, onClick, color = "b
   };
 
   const iconColorClasses = {
-    blue: "text-blue-600",
+    charcoal: "text-charcoal-600",
     green: "text-green-600", 
     purple: "text-purple-600",
     orange: "text-orange-600",
@@ -127,7 +127,7 @@ const Dashboard = () => {
       icon: <Database className="w-5 h-5" />,
       title: "Enhanced Knowledge Feed", 
       description: "Upload any document type - PDF, Word, Excel, PowerPoint - and get AI-powered categorization.",
-      color: "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 text-blue-800"
+      color: "bg-gradient-to-r from-charcoal-50 to-charcoal-100 border-charcoal-200 text-charcoal-800"
     },
     {
       icon: <Network className="w-5 h-5" />,
@@ -196,12 +196,15 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg text-white p-6 mb-2">
+      {/* Enhanced Header with Charcoal Gradient */}
+      <div className="rounded-xl shadow-lg text-white p-6 mb-2"
+           style={{
+             background: `linear-gradient(to right, var(--primary-color), var(--secondary-color))`
+           }}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">Pulse One Dashboard</h1>
-            <p className="text-blue-100 flex items-center">
+            <p className="text-white/80 flex items-center">
               <Brain className="w-4 h-4 mr-2" />
               AI-powered orchestration layer with enhanced knowledge processing
             </p>
@@ -209,13 +212,14 @@ const Dashboard = () => {
           <div className="flex items-center space-x-4">
             {!loading && !error && (
               <div className="text-right">
-                <p className="text-xs text-blue-200">Last updated</p>
+                <p className="text-xs text-white/60">Last updated</p>
                 <p className="text-sm font-medium">{getLastUpdateTime()}</p>
               </div>
             )}
             <button 
               onClick={handleRefresh} 
-              className="flex items-center px-4 py-2 text-sm bg-white text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+              className="flex items-center px-4 py-2 text-sm bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
+              style={{ color: 'var(--primary-color)' }}
               disabled={refreshing}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -243,7 +247,7 @@ const Dashboard = () => {
                 <div
                   key={index}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentTipIndex ? 'bg-blue-500' : 'bg-gray-300'
+                    index === currentTipIndex ? 'bg-charcoal-500' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -311,13 +315,13 @@ const Dashboard = () => {
               <h2 className="text-lg font-semibold text-gray-900">Connected Modules</h2>
             </div>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-charcoal-50 rounded-lg">
                 <div>
                   <span className="text-sm font-medium text-gray-700">Pulse 360</span>
                   <p className="text-xs text-gray-500">360 Feedback</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-lg font-bold text-blue-600">Active</span>
+                  <span className="text-lg font-bold text-charcoal-600">Active</span>
                 </div>
               </div>
               <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
@@ -367,15 +371,15 @@ const Dashboard = () => {
               </button>
               <button
                 onClick={() => navigate('/library')}
-                className="w-full p-3 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
+                className="w-full p-3 text-left bg-charcoal-50 hover:bg-charcoal-100 rounded-lg transition-colors group"
               >
                 <div className="flex items-center space-x-3">
-                  <FolderOpen className="w-4 h-4 text-blue-600" />
+                  <FolderOpen className="w-4 h-4 text-charcoal-600" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">Browse Library</p>
                     <p className="text-xs text-gray-500">Explore documents</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 ml-auto" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-charcoal-600 ml-auto" />
                 </div>
               </button>
             </div>
@@ -391,7 +395,7 @@ const Dashboard = () => {
           icon={Network}
           isLoading={loading}
           error={false}
-          color="blue"
+          color="charcoal"
         />
         
         <MetricCard 
@@ -439,7 +443,7 @@ const Dashboard = () => {
               title="Upload Documents"
               description="Add files to knowledge base"
               onClick={() => navigate('/knowledge-feed')}
-              color="blue"
+              color="charcoal"
             />
             <QuickActionButton
               icon={MessageSquare}
@@ -485,7 +489,8 @@ const Dashboard = () => {
             <p className="text-xs text-gray-400">Activity will appear here as you use the enhanced features</p>
             <button
               onClick={() => navigate('/knowledge-feed')}
-              className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-4 inline-flex items-center px-4 py-2 text-white text-sm rounded-lg hover:opacity-90 transition-colors"
+              style={{ background: 'var(--primary-color)' }}
             >
               <Upload className="w-4 h-4 mr-2" />
               Get Started
