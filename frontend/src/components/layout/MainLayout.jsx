@@ -6,7 +6,6 @@ import {
   Network, Gauge, Shield, Users, Zap, FileText, Search, Layers,
   HardDrive, Wifi, Monitor, Wrench
 } from 'lucide-react';
-import fluxLogo from "../../../assets/Flux_white_symbol.png";
 import NotificationBell from '../ui/NotificationBell';
 import api from "../../services/api";
 import { useAuth } from '../../contexts/AuthContext';
@@ -165,21 +164,6 @@ export function MainLayout({ children }) {
     logout();
   };
 
-  // Custom active check functions for complex routing
-  const isInsightsHubActive = (pathname) => {
-    return pathname.startsWith('/chat') || pathname.startsWith('/reports') || 
-           pathname.startsWith('/analytics') || pathname.startsWith('/recommendations');
-  };
-
-  const isContextHubActive = (pathname) => {
-    return pathname.startsWith('/library') || pathname.startsWith('/knowledge-feed');
-  };
-
-  const isOrchestrationHubActive = (pathname) => {
-    return pathname.startsWith('/connections') || pathname.startsWith('/rag-management') || 
-           pathname.startsWith('/sync-monitoring');
-  };
-
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -236,7 +220,7 @@ export function MainLayout({ children }) {
           <div className="text-white/80 text-sm flex items-center">
             <span className="mr-2">AI powered by</span>
             <a href="https://runonflux.com" target="_blank" rel="noopener noreferrer" className="flex items-center">
-              <img src={fluxLogo} alt="Flux" className="h-6 w-auto" />
+              <span className="text-white font-semibold">Flux</span>
             </a>
           </div>
         </div>
