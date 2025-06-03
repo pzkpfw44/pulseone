@@ -36,12 +36,46 @@ class RagService {
           attributes: ['originalName', 'category', 'isLegacy', 'createdAt']
         }],
         where: {
-          content: {
-            [Op.like]: `%${query}%`
-          }
+          [Op.or]: [
+            {
+              content: {
+                [Op.like]: `%${query}%`
+              }
+            },
+            {
+              content: {
+                [Op.like]: `%document%`
+              }
+            },
+            {
+              content: {
+                [Op.like]: `%guide%`
+              }
+            }
+          ]
         },
         order: [['createdAt', 'DESC']]
       });
+
+      console.log(`RAG Search - Found ${chunks.length} chunks matching query`);
+      
+      if (chunks.length > 0) {
+        console.log('First chunk preview:', chunks[0].content.substring(0, 200));
+      } else {
+        // If no chunks found with LIKE search, try getting all chunks to debug
+        const allChunks = await DocumentChunk.findAll({
+          include: [{
+            model: Document,
+            as: 'document',
+            attributes: ['originalName', 'category', 'isLegacy', 'createdAt']
+          }],
+          limit: 3
+        });
+        console.log(`RAG Search - No chunks found for query "${query}". Total chunks in DB: ${allChunks.length}`);
+        if (allChunks.length > 0) {
+          console.log('Sample chunk content:', allChunks[0].content.substring(0, 300));
+        }
+      }
 
       console.log(`RAG Search - Found ${chunks.length} chunks matching query`);
       
