@@ -1,4 +1,4 @@
-// frontend/src/App.jsx
+// frontend/src/App.jsx - FIXED VERSION
 
 import React, { useState, useEffect } from "react";
 import api from "./services/api";
@@ -6,7 +6,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/Login';
-import EnhancedDashboard from './pages/EnhancedDashboard';
+import Dashboard from './pages/Dashboard'; // Using existing Dashboard
 
 // InsightsHub pages
 import ChatAssistant from './pages/ChatAssistant';
@@ -16,7 +16,7 @@ import AiRecommendations from './pages/AiRecommendations';
 
 // ContextHub pages
 import CompanyLibrary from './pages/CompanyLibrary';
-import EnhancedKnowledgeFeed from './pages/EnhancedKnowledgeFeed';
+import EnhancedKnowledgeFeed from './pages/EnhancedKnowledgeFeed'; // This should work
 
 // OrchestrationHub pages
 import DataConnections from './pages/DataConnections';
@@ -107,7 +107,7 @@ function App() {
         <Route path="/" element={
           <PrivateRoute>
             <ExternalRoute>
-              <EnhancedDashboard />
+              <Dashboard />
             </ExternalRoute>
           </PrivateRoute>
         } />
@@ -207,7 +207,6 @@ function App() {
         {/* Redirect unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-
     </AuthProvider>
   );
 }

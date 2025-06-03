@@ -3,7 +3,7 @@ import {
   Database, MessageSquare, FileText, BarChart2, 
   AlertTriangle, ArrowRight, RefreshCw, Shield, Brain, TrendingUp,
   CheckCircle, Clock, Plus, Zap, Target, Calendar, Activity, ChevronRight,
-  Network, Users, Layers, HardDrive, Wifi
+  Network, Users, Layers, HardDrive, Wifi, Upload, FolderOpen
 } from 'lucide-react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +22,7 @@ const DashboardCard = ({ children, className = "", onClick, hover = false }) => 
   );
 };
 
-// Metric card with better visual hierarchy
+// Enhanced Metric card with real data support
 const MetricCard = ({ title, rawData, icon: Icon, isLoading, error, color = "blue" }) => {
   const colorClasses = {
     blue: "bg-blue-500 text-white",
@@ -38,7 +38,7 @@ const MetricCard = ({ title, rawData, icon: Icon, isLoading, error, color = "blu
         <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
           <Icon className="w-6 h-6" />
         </div>
-        {!isLoading && !error && rawData?.trend && (
+        {!isLoading && !error && rawData?.trend && rawData.trend > 0 && (
           <div className="text-green-500 text-sm font-medium flex items-center">
             <TrendingUp className="w-4 h-4 mr-1" />
             +{rawData.trend}%
@@ -60,8 +60,8 @@ const MetricCard = ({ title, rawData, icon: Icon, isLoading, error, color = "blu
           </div>
         ) : (
           <div>
-            <p className="text-3xl font-bold text-gray-900 mb-1">{rawData.value}</p>
-            {rawData.subtitle && (
+            <p className="text-3xl font-bold text-gray-900 mb-1">{rawData?.value || '0'}</p>
+            {rawData?.subtitle && (
               <p className="text-sm text-gray-500">{rawData.subtitle}</p>
             )}
           </div>
@@ -116,29 +116,29 @@ const Dashboard = () => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const navigate = useNavigate();
 
-  const tips = [
+  const enhancedTips = [
     {
       icon: <Brain className="w-5 h-5" />,
-      title: "AI-Powered Orchestration",
-      description: "Pulse One intelligently connects and analyzes data across all your systems.",
+      title: "AI-Powered Document Processing",
+      description: "Upload documents and watch AI automatically extract, categorize, and index content for intelligent search.",
       color: "bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 text-purple-800"
     },
     {
       icon: <Database className="w-5 h-5" />,
-      title: "Advanced RAG Capabilities", 
-      description: "Upload any document and let AI create intelligent, contextual insights.",
+      title: "Enhanced Knowledge Feed", 
+      description: "Upload any document type - PDF, Word, Excel, PowerPoint - and get AI-powered categorization.",
       color: "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 text-blue-800"
     },
     {
       icon: <Network className="w-5 h-5" />,
-      title: "Cross-Module Integration",
-      description: "Seamlessly connects Pulse 360, Voice, Learn, and Assess for unified analytics.",
+      title: "Real-time Processing",
+      description: "Track document processing in real-time with detailed status updates and progress indicators.",
       color: "bg-gradient-to-r from-green-50 to-green-100 border-green-200 text-green-800"
     },
     {
       icon: <Shield className="w-5 h-5" />,
-      title: "Enterprise-Grade Security",
-      description: "Your data is always private and secure with decentralized AI infrastructure.",
+      title: "Smart File Validation",
+      description: "Intelligent file size warnings and optimization suggestions for better performance.",
       color: "bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 text-orange-800"
     }
   ];
@@ -146,29 +146,30 @@ const Dashboard = () => {
   // Rotate tips every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTipIndex((prev) => (prev + 1) % tips.length);
+      setCurrentTipIndex((prev) => (prev + 1) % enhancedTips.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch dashboard data
+  // Fetch dashboard data - now using enhanced endpoint
   const fetchDashboardData = async () => {
     setRefreshing(true);
     try {
-      const response = await api.get('/dashboard/orchestration-stats');
-      console.log('Dashboard data:', response.data);
+      const response = await api.get('/dashboard/enhanced-stats');
+      console.log('Enhanced dashboard data:', response.data);
       setRawData(response.data);
       setError(null);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Unable to load some metrics. Please try again later.');
-      // Set some default data for now
+      // Set some default data for fallback
       setRawData({
-        connectedModules: { value: '4', subtitle: 'Pulse modules connected' },
-        totalDocuments: { value: '156', subtitle: 'Documents processed' },
-        ragQueries: { value: '2.3K', subtitle: 'AI queries processed' },
-        syncStatus: { value: '98%', subtitle: 'Data synchronization' },
-        insights: { value: '47', subtitle: 'AI insights generated' }
+        connectedModules: { value: '1', subtitle: 'Pulse 360 active' },
+        totalDocuments: { value: '0', subtitle: 'Ready for processing' },
+        ragQueries: { value: '0', subtitle: 'AI interactions' },
+        syncStatus: { value: '100%', subtitle: 'All systems synced' },
+        categories: { value: '7', subtitle: 'Default categories' },
+        processingJobs: { value: '0', subtitle: 'No jobs running' }
       });
     } finally {
       setLoading(false);
@@ -191,7 +192,7 @@ const Dashboard = () => {
     return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
 
-  const currentTip = tips[currentTipIndex];
+  const currentTip = enhancedTips[currentTipIndex];
 
   return (
     <div className="space-y-6">
@@ -202,7 +203,7 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold mb-2">Pulse One Dashboard</h1>
             <p className="text-blue-100 flex items-center">
               <Brain className="w-4 h-4 mr-2" />
-              AI-powered orchestration layer for your entire HR ecosystem
+              AI-powered orchestration layer with enhanced knowledge processing
             </p>
           </div>
           <div className="flex items-center space-x-4">
@@ -232,39 +233,39 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-        
-        {/* Pulse One Features Card */}
-        <div className="xl:col-span-2">
-          <DashboardCard className="p-6 h-full">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Pulse One Capabilities</h2>
-              <div className="flex space-x-1">
-                {tips.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      index === currentTipIndex ? 'bg-blue-500' : 'bg-gray-300'
-                    }`}
-                  />
-                ))}
+      {/* Enhanced Features Tip Card */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Enhanced Knowledge Processing</h2>
+            <div className="flex space-x-1">
+              {enhancedTips.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentTipIndex ? 'bg-blue-500' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className={`p-4 rounded-xl border-l-4 transition-all duration-500 ${currentTip.color}`}>
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                {currentTip.icon}
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">{currentTip.title}</h3>
+                <p className="text-sm opacity-90">{currentTip.description}</p>
               </div>
             </div>
-            <div className={`p-4 rounded-xl border-l-4 transition-all duration-500 ${currentTip.color}`}>
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-white rounded-lg shadow-sm">
-                  {currentTip.icon}
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">{currentTip.title}</h3>
-                  <p className="text-sm opacity-90">{currentTip.description}</p>
-                </div>
-              </div>
-            </div>
-          </DashboardCard>
+          </div>
         </div>
+      </div>
 
+      {/* Enhanced Metrics Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        
         {/* System Health Card */}
         <div className="lg:col-span-1">
           <DashboardCard className="p-6 h-full">
@@ -276,24 +277,24 @@ const Dashboard = () => {
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">RAG Engine</span>
+                <span className="text-sm font-medium text-gray-700">Knowledge Feed</span>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-sm text-green-600">Ready</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-700">File Processing</span>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-sm text-green-600">Active</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-700">AI Categorization</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   <span className="text-sm text-green-600">Operational</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Data Sync</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm text-green-600">Syncing</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Flux AI</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm text-green-600">Connected</span>
                 </div>
               </div>
             </div>
@@ -319,6 +320,15 @@ const Dashboard = () => {
                   <span className="text-lg font-bold text-blue-600">Active</span>
                 </div>
               </div>
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Knowledge Feed</span>
+                  <p className="text-xs text-gray-500">Document Processing</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-green-600">Enhanced</span>
+                </div>
+              </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <div>
                   <span className="text-sm font-medium text-gray-700">Pulse Voice</span>
@@ -328,23 +338,56 @@ const Dashboard = () => {
                   <span className="text-lg font-bold text-gray-400">Pending</span>
                 </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <span className="text-sm font-medium text-gray-700">Pulse Learn</span>
-                  <p className="text-xs text-gray-500">Coming Soon</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-bold text-gray-400">Pending</span>
-                </div>
-              </div>
             </div>
           </DashboardCard>
         </div>
 
-        {/* Metrics Row */}
+        {/* Quick Start Card */}
+        <div className="lg:col-span-1">
+          <DashboardCard className="p-6 h-full">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Zap className="w-5 h-5 text-purple-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Quick Start</h2>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/knowledge-feed')}
+                className="w-full p-3 text-left bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group"
+              >
+                <div className="flex items-center space-x-3">
+                  <Upload className="w-4 h-4 text-purple-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Upload Documents</p>
+                    <p className="text-xs text-gray-500">Start with Knowledge Feed</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600 ml-auto" />
+                </div>
+              </button>
+              <button
+                onClick={() => navigate('/library')}
+                className="w-full p-3 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
+              >
+                <div className="flex items-center space-x-3">
+                  <FolderOpen className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Browse Library</p>
+                    <p className="text-xs text-gray-500">Explore documents</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 ml-auto" />
+                </div>
+              </button>
+            </div>
+          </DashboardCard>
+        </div>
+      </div>
+
+      {/* Enhanced Metrics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         <MetricCard 
           title="Connected Modules" 
-          rawData={rawData?.connectedModules || { value: '1', subtitle: 'Pulse 360 active' }}
+          rawData={rawData?.connectedModules}
           icon={Network}
           isLoading={loading}
           error={false}
@@ -353,7 +396,7 @@ const Dashboard = () => {
         
         <MetricCard 
           title="Documents Processed" 
-          rawData={rawData?.totalDocuments || { value: '0', subtitle: 'Ready for analysis' }}
+          rawData={rawData?.totalDocuments}
           icon={FileText}
           isLoading={loading}
           error={false}
@@ -361,86 +404,93 @@ const Dashboard = () => {
         />
         
         <MetricCard 
-          title="RAG Queries" 
-          rawData={rawData?.ragQueries || { value: '0', subtitle: 'AI interactions' }}
-          icon={Brain}
+          title="Active Categories" 
+          rawData={rawData?.categories}
+          icon={Target}
           isLoading={loading}
           error={false}
           color="purple"
         />
         
         <MetricCard 
-          title="Sync Status" 
-          rawData={rawData?.syncStatus || { value: '100%', subtitle: 'All systems synced' }}
-          icon={Wifi}
+          title="Processing Jobs" 
+          rawData={rawData?.processingJobs}
+          icon={Activity}
           isLoading={loading}
           error={false}
           color="orange"
         />
+      </div>
 
-        {/* Quick Actions Card */}
-        <div className="xl:col-span-2">
-          <DashboardCard className="p-6">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Zap className="w-5 h-5 text-indigo-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+      {/* Quick Actions Card */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Zap className="w-5 h-5 text-indigo-600" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <QuickActionButton
-                icon={MessageSquare}
-                title="Chat with AI"
-                description="Ask questions about your data"
-                onClick={() => navigate('/chat')}
-                color="blue"
-              />
-              <QuickActionButton
-                icon={FileText}
-                title="Upload Knowledge"
-                description="Add documents to the knowledge base"
-                onClick={() => navigate('/knowledge-feed')}
-                color="green"
-              />
-              <QuickActionButton
-                icon={BarChart2}
-                title="View Analytics"
-                description="Explore cross-module insights"
-                onClick={() => navigate('/analytics')}
-                color="purple"
-              />
-              <QuickActionButton
-                icon={Database}
-                title="Manage Connections"
-                description="Configure data sources"
-                onClick={() => navigate('/connections')}
-                color="orange"
-              />
-            </div>
-          </DashboardCard>
+            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+          </div>
         </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <QuickActionButton
+              icon={Upload}
+              title="Upload Documents"
+              description="Add files to knowledge base"
+              onClick={() => navigate('/knowledge-feed')}
+              color="blue"
+            />
+            <QuickActionButton
+              icon={MessageSquare}
+              title="Chat with AI"
+              description="Ask questions about your data"
+              onClick={() => navigate('/chat')}
+              color="green"
+            />
+            <QuickActionButton
+              icon={BarChart2}
+              title="View Analytics"
+              description="Explore insights and metrics"
+              onClick={() => navigate('/analytics')}
+              color="purple"
+            />
+            <QuickActionButton
+              icon={Database}
+              title="Manage Data"
+              description="Configure connections"
+              onClick={() => navigate('/connections')}
+              color="orange"
+            />
+          </div>
+        </div>
+      </div>
 
-        {/* Recent Activity Card */}
-        <div className="lg:col-span-2">
-          <DashboardCard className="h-full">
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Activity className="w-5 h-5 text-purple-600" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-              </div>
+      {/* Recent Activity Card */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Activity className="w-5 h-5 text-purple-600" />
             </div>
-            <div className="p-6">
-              <div className="text-center py-6">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Plus className="w-4 h-4 text-gray-400" />
-                </div>
-                <p className="text-gray-500 text-sm mb-3">No recent activity</p>
-                <p className="text-xs text-gray-400">Activity will appear here as you use Pulse One</p>
-              </div>
+            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="text-center py-6">
+            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Plus className="w-4 h-4 text-gray-400" />
             </div>
-          </DashboardCard>
+            <p className="text-gray-500 text-sm mb-3">No recent activity</p>
+            <p className="text-xs text-gray-400">Activity will appear here as you use the enhanced features</p>
+            <button
+              onClick={() => navigate('/knowledge-feed')}
+              className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Get Started
+            </button>
+          </div>
         </div>
       </div>
     </div>
