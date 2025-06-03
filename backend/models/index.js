@@ -9,6 +9,53 @@ const sequelize = new Sequelize({
   logging: false
 });
 
+// Initialize database
+async function initializeDatabase() {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection established successfully.');
+    
+    // Create tables
+    await sequelize.sync({ alter: true });
+    console.log('Database synchronized.');
+
+    // Initialize default categories
+    await initializeDefaultCategories();
+    console.log('Default categories initialized.');
+
+    // Initialize default branding settings
+    await initializeDefaultBrandingSettings();
+    console.log('Default branding settings initialized.');
+
+  } catch (error) {
+    console.error('Unable to connect to database:', error);
+  }
+}
+
+// Add this new function
+async function initializeDefaultBrandingSettings() {
+  const existingSettings = await BrandingSettings.findOne({ where: { isActive: true } });
+  
+  if (!existingSettings) {
+    await BrandingSettings.create({
+      companyName: 'Pulse One',
+      industry: 'Technology',
+      keyValues: 'Innovation, Integrity, Excellence',
+      primaryColor: '#4B5563',
+      secondaryColor: '#374151',
+      accentColor: '#6B7280',
+      backgroundColor: '#F9FAFB',
+      communicationTone: 'professional',
+      formalityLevel: 'formal',
+      personality: 'helpful',
+      fontFamily: 'Inter',
+      brandGradientDirection: 'to-right',
+      enableGradients: true,
+      isActive: true
+    });
+  }
+}
+
 // Document model
 const Document = sequelize.define('Document', {
   id: {
@@ -236,11 +283,122 @@ async function initializeDefaultCategories() {
   }
 }
 
+// Add this to your existing backend/models/index.js file
+
+// Branding Settings model (add this after your other models)
+const BrandingSettings = sequelize.define('BrandingSettings', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  companyName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'Pulse One'
+  },
+  industry: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'Technology'
+  },
+  keyValues: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: 'Innovation, Integrity, Excellence'
+  },
+  primaryColor: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: '#4B5563', // charcoal-600
+    validate: {
+      is: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+    }
+  },
+  secondaryColor: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: '#374151', // charcoal-700
+    validate: {
+      is: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+    }
+  },
+  accentColor: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: '#6B7280', // charcoal-500
+    validate: {
+      is: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+    }
+  },
+  backgroundColor: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: '#F9FAFB', // charcoal-50
+    validate: {
+      is: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+    }
+  },
+  communicationTone: {
+    type: DataTypes.ENUM('professional', 'friendly', 'casual', 'formal'),
+    defaultValue: 'professional'
+  },
+  formalityLevel: {
+    type: DataTypes.ENUM('very_formal', 'formal', 'neutral', 'informal', 'very_informal'),
+    defaultValue: 'formal'
+  },
+  personality: {
+    type: DataTypes.ENUM('helpful', 'enthusiastic', 'direct', 'empathetic', 'authoritative'),
+    defaultValue: 'helpful'
+  },
+  logoUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  faviconUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  fontFamily: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'Inter'
+  },
+  brandGradientDirection: {
+    type: DataTypes.ENUM('to-right', 'to-left', 'to-bottom', 'to-top'),
+    defaultValue: 'to-right'
+  },
+  enableGradients: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  customCSS: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  }
+}, {
+  tableName: 'branding_settings',
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['isActive'],
+      where: { isActive: true }
+    }
+  ]
+});
+
+// Add this to your existing module.exports
 module.exports = {
   sequelize,
   Document,
   Category,
   ProcessingJob,
   SystemSetting,
+  BrandingSettings,
   initializeDatabase
 };
