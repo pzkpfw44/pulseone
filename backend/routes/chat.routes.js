@@ -1,4 +1,5 @@
 // backend/routes/chat.routes.js
+
 const express = require('express');
 const router = express.Router();
 const ragService = require('../services/rag.service');
@@ -15,7 +16,10 @@ router.post('/query', async (req, res) => {
     } = req.body;
 
     if (!message || message.trim().length === 0) {
-      return res.status(400).json({ error: 'Message is required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Message is required' 
+      });
     }
 
     console.log('Chat query:', message);
@@ -69,24 +73,71 @@ If the context doesn't contain relevant information for the question, say so cle
     };
 
     const aiResponse = await makeAiChatRequest(aiRequest);
-    
-    const response = aiResponse.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+    console.log('Raw AI response received:', JSON.stringify(aiResponse, null, 2));
 
-    res.json({
+    // Step 4: Extract the response text properly
+    let responseText = '';
+    
+    if (aiResponse && aiResponse.choices && aiResponse.choices.length > 0) {
+      const choice = aiResponse.choices[0];
+      
+      // Try different possible response formats
+      if (choice.message && choice.message.content) {
+        responseText = choice.message.content;
+      } else if (choice.message && typeof choice.message === 'string') {
+        responseText = choice.message;
+      } else if (choice.text) {
+        responseText = choice.text;
+      } else if (choice.content) {
+        responseText = choice.content;
+      } else {
+        console.error('Could not extract response from choice:', choice);
+        responseText = 'Sorry, I could not generate a response.';
+      }
+    } else {
+      console.error('No choices found in AI response:', aiResponse);
+      responseText = 'Sorry, I could not generate a response.';
+    }
+
+    console.log('Extracted response text:', responseText);
+
+    // Step 5: Return formatted response to frontend
+    const finalResponse = {
       success: true,
-      response: response,
+      response: responseText,
       sources: contextResult.sources,
       foundRelevantContent: contextResult.foundRelevantContent,
       totalDocumentsSearched: contextResult.totalResults || 0,
-      query: message
+      query: message,
+      debug: {
+        contextLength: contextResult.context.length,
+        sourcesCount: contextResult.sources.length,
+        aiModel: fluxAiConfig.model,
+        promptLength: systemPrompt.length
+      }
+    };
+
+    console.log('Sending final response to frontend:', {
+      success: finalResponse.success,
+      responseLength: finalResponse.response.length,
+      sourcesCount: finalResponse.sources.length,
+      foundRelevantContent: finalResponse.foundRelevantContent
     });
+
+    res.json(finalResponse);
 
   } catch (error) {
     console.error('Chat query error:', error);
+    
+    // Send a proper error response
     res.status(500).json({
       success: false,
       error: 'Failed to process chat query',
-      response: 'Sorry, I encountered an error while processing your question.'
+      response: 'Sorry, I encountered an error while processing your question.',
+      message: error.message,
+      sources: [],
+      foundRelevantContent: false,
+      totalDocumentsSearched: 0
     });
   }
 });
@@ -141,6 +192,44 @@ router.get('/debug/chunks', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Test endpoint to verify chat system
+router.post('/test', async (req, res) => {
+  try {
+    const testMessage = req.body.message || 'test query';
+    
+    console.log('Chat test with message:', testMessage);
+    
+    // Test RAG search
+    const ragResult = await ragService.searchDocuments(testMessage, {
+      maxResults: 3,
+      categories: [],
+      excludeLegacy: false
+    });
+    
+    console.log('RAG test result:', {
+      success: ragResult.success,
+      chunksFound: ragResult.chunks?.length || 0
+    });
+    
+    res.json({
+      success: true,
+      message: 'Chat system test completed',
+      ragTest: {
+        success: ragResult.success,
+        chunksFound: ragResult.chunks?.length || 0,
+        sampleChunk: ragResult.chunks?.[0]?.content?.substring(0, 200) || 'No content'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Chat test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 

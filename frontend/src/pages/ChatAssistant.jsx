@@ -37,38 +37,76 @@ const ChatAssistant = () => {
     setIsLoading(true);
 
     try {
+      console.log('Sending chat request:', inputMessage); // Debug log
+
       const response = await api.post('/chat/query', {
         message: inputMessage,
         excludeLegacy: false,
         categories: []
       });
 
-      console.log('Chat response:', response.data); // Debug log
+      console.log('Full chat response:', response.data); // Debug log
 
-      const aiResponse = response.data.response || 'Sorry, I could not generate a response.';
+      // Enhanced response parsing to handle different response formats
+      let aiResponseText = '';
+      
+      if (response.data.success === false) {
+        aiResponseText = response.data.error || 'Sorry, I encountered an error while processing your question.';
+      } else if (response.data.response) {
+        aiResponseText = response.data.response;
+      } else if (response.data.message) {
+        aiResponseText = response.data.message;
+      } else if (response.data.answer) {
+        aiResponseText = response.data.answer;
+      } else {
+        console.warn('Unexpected response format:', response.data);
+        aiResponseText = 'Sorry, I received an unexpected response format.';
+      }
+
+      console.log('Parsed AI response text:', aiResponseText); // Debug log
       
       const aiMessage = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: aiResponse,
+        content: aiResponseText,
         timestamp: new Date(),
         sources: response.data.sources || [],
         foundRelevantContent: response.data.foundRelevantContent,
-        totalDocumentsSearched: response.data.totalDocumentsSearched
+        totalDocumentsSearched: response.data.totalDocumentsSearched,
+        rawResponse: response.data // Keep full response for debugging
       };
 
+      console.log('Created AI message:', aiMessage); // Debug log
       setMessages(prev => [...prev, aiMessage]);
+
     } catch (error) {
       console.error('Chat error:', error);
-      console.error('Error details:', error.response?.data);
+      console.error('Error response:', error.response?.data);
       
-      const errorMessage = {
+      let errorMessage = 'Sorry, I encountered an error while processing your question.';
+      
+      // Try to extract more specific error information
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = `Network error: ${error.message}`;
+      }
+      
+      const errorMessageObj = {
         id: Date.now() + 1,
         type: 'error',
-        content: 'Sorry, I encountered an error while processing your question.',
-        timestamp: new Date()
+        content: errorMessage,
+        timestamp: new Date(),
+        debug: {
+          originalError: error.message,
+          responseData: error.response?.data,
+          status: error.response?.status
+        }
       };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      setMessages(prev => [...prev, errorMessageObj]);
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +154,7 @@ const ChatAssistant = () => {
             <div className="text-center text-gray-500 py-8">
               <MessageSquare className="w-12 h-12 mx-auto text-gray-400 mb-3" />
               <p>Start a conversation by asking about your documents</p>
-              <p className="text-sm mt-2">Try: "What is this document about?" or "Summarize the main points"</p>
+              <p className="text-sm mt-2">Try: "What are the pillars of the leadership model?" or "Summarize the main points"</p>
             </div>
           ) : (
             messages.map(message => (
@@ -154,7 +192,32 @@ const ChatAssistant = () => {
                   {message.totalDocumentsSearched !== undefined && (
                     <div className="mt-2 text-xs text-gray-500">
                       Searched {message.totalDocumentsSearched} document sections
+                      {message.foundRelevantContent !== undefined && (
+                        <span className="ml-2">
+                          | Found relevant content: {message.foundRelevantContent ? 'Yes' : 'No'}
+                        </span>
+                      )}
                     </div>
+                  )}
+
+                  {/* Debug Info (only show in development) */}
+                  {process.env.NODE_ENV === 'development' && message.debug && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-gray-400 cursor-pointer">Debug Info</summary>
+                      <pre className="text-xs text-gray-400 mt-1 bg-gray-800 text-white p-2 rounded overflow-auto">
+                        {JSON.stringify(message.debug, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+
+                  {/* Raw Response Debug (development only) */}
+                  {process.env.NODE_ENV === 'development' && message.rawResponse && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-gray-400 cursor-pointer">Raw API Response</summary>
+                      <pre className="text-xs text-gray-400 mt-1 bg-gray-800 text-white p-2 rounded overflow-auto max-h-32">
+                        {JSON.stringify(message.rawResponse, null, 2)}
+                      </pre>
+                    </details>
                   )}
                 </div>
               </div>
@@ -201,6 +264,14 @@ const ChatAssistant = () => {
           )}
         </div>
       </div>
+
+      {/* Development Helper */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+          <p className="font-medium text-yellow-800">Development Mode</p>
+          <p className="text-yellow-700">Check browser console for detailed API logs</p>
+        </div>
+      )}
     </div>
   );
 };
