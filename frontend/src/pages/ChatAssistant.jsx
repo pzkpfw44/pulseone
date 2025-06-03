@@ -43,10 +43,14 @@ const ChatAssistant = () => {
         categories: []
       });
 
+      console.log('Chat response:', response.data); // Debug log
+
+      const aiResponse = response.data.response || 'Sorry, I could not generate a response.';
+      
       const aiMessage = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: response.data.response,
+        content: aiResponse,
         timestamp: new Date(),
         sources: response.data.sources || [],
         foundRelevantContent: response.data.foundRelevantContent,
@@ -56,6 +60,8 @@ const ChatAssistant = () => {
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Chat error:', error);
+      console.error('Error details:', error.response?.data);
+      
       const errorMessage = {
         id: Date.now() + 1,
         type: 'error',

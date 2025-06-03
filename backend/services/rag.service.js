@@ -27,6 +27,17 @@ class RagService {
 
       console.log('RAG Search - Document where clause:', whereClause);
 
+      // Extract keywords from query for better search
+      const keywords = this.extractKeywords(query);
+      console.log('RAG Search - Extracted keywords:', keywords);
+
+      // Build search conditions for keywords
+      const searchConditions = keywords.map(keyword => ({
+        content: {
+          [Op.like]: `%${keyword}%`
+        }
+      }));
+
       // Get all chunks with document info
       const chunks = await DocumentChunk.findAll({
         include: [{
@@ -36,23 +47,7 @@ class RagService {
           attributes: ['originalName', 'category', 'isLegacy', 'createdAt']
         }],
         where: {
-          [Op.or]: [
-            {
-              content: {
-                [Op.like]: `%${query}%`
-              }
-            },
-            {
-              content: {
-                [Op.like]: `%document%`
-              }
-            },
-            {
-              content: {
-                [Op.like]: `%guide%`
-              }
-            }
-          ]
+          [Op.or]: searchConditions
         },
         order: [['createdAt', 'DESC']]
       });
@@ -136,6 +131,22 @@ class RagService {
       foundRelevantContent: true,
       totalResults: searchResult.totalFound
     };
+  }
+  // Extract meaningful keywords from query
+  extractKeywords(query) {
+    // Remove common words and extract meaningful terms
+    const stopWords = new Set([
+      'tell', 'me', 'about', 'what', 'is', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+      'how', 'when', 'where', 'why', 'which', 'who', 'can', 'could', 'would', 'should', 'this', 'that', 'these', 'those'
+    ]);
+
+    const words = query.toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove punctuation
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+
+    // If no keywords found, return original query
+    return words.length > 0 ? words : [query.toLowerCase()];
   }
 }
 
