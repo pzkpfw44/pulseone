@@ -85,9 +85,10 @@ router.post('/upload', upload.array('files', 10), async (req, res) => {
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    const { category: defaultCategory, tags: tagsString, isLegacy } = req.body;
+    const { category: defaultCategory, tags: tagsString, isLegacy, useAiCategorization } = req.body;
     const userTags = tagsString ? JSON.parse(tagsString) : [];
     const isLegacyFlag = isLegacy === 'true';
+    const useAiFlag = useAiCategorization === 'true';
 
     const results = [];
 
@@ -105,7 +106,8 @@ router.post('/upload', upload.array('files', 10), async (req, res) => {
           status: 'uploaded',
           processingStage: 'uploaded',
           userTags: userTags,
-          uploadedBy: req.user?.id || 'system'
+          uploadedBy: req.user?.id || 'system',
+          useAiProcessing: useAiFlag
         });
 
         // Start processing pipeline
@@ -211,11 +213,24 @@ async function processDocumentComplete(document, job) {
         processingStage: 'categorizing'
       });
 
-      const categorizationResult = await categorization.categorizeDocument(
-        extractionResult.extractedText,
-        document.originalName,
-        extractionResult.metadata
-      );
+      let categorizationResult;
+      
+      // Check if user wants AI processing and if AI is configured
+      if (document.useAiProcessing) {
+        console.log('User requested AI categorization');
+        categorizationResult = await categorization.categorizeDocument(
+          extractionResult.extractedText,
+          document.originalName,
+          extractionResult.metadata
+        );
+      } else {
+        console.log('User requested basic pattern categorization');
+        // Force pattern-based categorization
+        categorizationResult = await categorization.patternBasedCategorization(
+          extractionResult.extractedText,
+          document.originalName
+        );
+      }
 
       if (categorizationResult.success) {
         finalCategory = categorizationResult.category;

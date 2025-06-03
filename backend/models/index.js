@@ -108,6 +108,10 @@ const Document = sequelize.define('Document', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  useAiProcessing: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
   userTags: {
     type: DataTypes.JSON,
     defaultValue: []

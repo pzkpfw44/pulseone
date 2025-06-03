@@ -15,6 +15,7 @@ const EnhancedKnowledgeFeed = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isLegacyData, setIsLegacyData] = useState(false);
   const [customTags, setCustomTags] = useState('');
+  const [useAiCategorization, setUseAiCategorization] = useState(true);
   const [uploadProgress, setUploadProgress] = useState({});
   const [recentUploads, setRecentUploads] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -231,6 +232,7 @@ const EnhancedKnowledgeFeed = () => {
       formData.append('category', selectedCategory);
       formData.append('tags', JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t)));
       formData.append('isLegacy', isLegacyData);
+      formData.append('useAiCategorization', useAiCategorization);
 
       const response = await api.post('/knowledge-feed/upload', formData, {
         headers: {
@@ -316,8 +318,8 @@ const EnhancedKnowledgeFeed = () => {
     
     const badges = {
       'ai-enhanced': { text: 'AI', color: 'bg-purple-100 text-purple-700' },
-      'pattern-based': { text: 'Pattern', color: 'bg-blue-100 text-blue-700' },
-      'pattern-verified': { text: 'Verified', color: 'bg-green-100 text-green-700' },
+      'pattern-based': { text: 'Basic', color: 'bg-blue-100 text-blue-700' },
+      'pattern-verified': { text: 'Basic+', color: 'bg-green-100 text-green-700' },
       'ai-new-category': { text: 'AI+New', color: 'bg-orange-100 text-orange-700' }
     };
     
@@ -441,43 +443,81 @@ const EnhancedKnowledgeFeed = () => {
           <h2 className="text-lg font-medium text-gray-900 mb-4">Upload New Documents</h2>
           
           {/* Global Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Default Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="pulse-one-select"
-              >
-                <option value="">Let AI suggest category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name.replace('_', ' ')} {cat.aiSuggested ? '(AI)' : ''}
-                    {cat.usageCount > 0 ? ` (${cat.usageCount})` : ''}
-                  </option>
-                ))}
-              </select>
+          <div className="space-y-4 mb-6">
+            {/* Processing Mode Selection */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-blue-900">Processing Mode</h3>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {useAiCategorization 
+                      ? 'AI will intelligently categorize and tag documents (uses API credits)'
+                      : 'Basic pattern matching will categorize documents (free, less accurate)'
+                    }
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useAiCategorization}
+                      onChange={(e) => setUseAiCategorization(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useAiCategorization ? 'bg-blue-600' : 'bg-gray-300'
+                    }`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        useAiCategorization ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </div>
+                    <span className="ml-3 text-sm font-medium text-gray-700">
+                      {useAiCategorization ? 'AI Processing' : 'Basic Processing'}
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Default Tags</label>
-              <input
-                type="text"
-                value={customTags}
-                onChange={(e) => setCustomTags(e.target.value)}
-                placeholder="tag1, tag2, tag3"
-                className="pulse-one-input"
-              />
-            </div>
-            <div className="flex items-end">
-              <label className="inline-flex items-center">
+
+            {/* Standard Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="pulse-one-select"
+                >
+                  <option value="">{useAiCategorization ? 'Let AI suggest category' : 'Auto-detect category'}</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name.replace('_', ' ')} {cat.aiSuggested ? '(AI)' : ''}
+                      {cat.usageCount > 0 ? ` (${cat.usageCount})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default Tags</label>
                 <input
-                  type="checkbox"
-                  checked={isLegacyData}
-                  onChange={(e) => setIsLegacyData(e.target.checked)}
-                  className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
+                  type="text"
+                  value={customTags}
+                  onChange={(e) => setCustomTags(e.target.value)}
+                  placeholder="tag1, tag2, tag3"
+                  className="pulse-one-input"
                 />
-                <span className="ml-2 text-sm text-gray-700">Legacy Data</span>
-              </label>
+              </div>
+              <div className="flex items-end">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={isLegacyData}
+                    onChange={(e) => setIsLegacyData(e.target.checked)}
+                    className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Legacy Data</span>
+                </label>
+              </div>
             </div>
           </div>
 
