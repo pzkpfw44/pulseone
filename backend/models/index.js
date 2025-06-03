@@ -99,17 +99,14 @@ const Document = sequelize.define('Document', {
     type: DataTypes.STRING,
     defaultValue: 'uploaded'
   },
-  extractedText: {
+  processingMethod: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'pattern-based'
+  },
+  processingReasoning: {
     type: DataTypes.TEXT,
     allowNull: true
-  },
-  summary: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  aiGeneratedTags: {
-    type: DataTypes.JSON,
-    defaultValue: []
   },
   userTags: {
     type: DataTypes.JSON,

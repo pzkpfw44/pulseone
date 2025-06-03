@@ -108,13 +108,17 @@ async function makeAiChatRequest(requestBody) {
       headers: {
         'Authorization': `Bearer ${fluxAiConfig.apiKey}`,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 30000 // 30 second timeout
     });
     
-    console.log('Response received, model used:', response.data?.model || 'Not specified');
+    console.log('Full AI response:', JSON.stringify(response.data, null, 2));
     return response.data;
   } catch (error) {
     console.error('Error making AI chat request:', error.message);
+    if (error.response) {
+      console.error('AI API Error Response:', error.response.data);
+    }
     throw error;
   }
 }
@@ -169,6 +173,7 @@ Please respond in JSON format:
 If none of the existing categories fit well, suggest a new category with isNewCategory: true and provide a description.`;
 
     const requestBody = {
+      model: fluxAiConfig.model,
       messages: [
         {
           role: 'system',
@@ -187,7 +192,7 @@ If none of the existing categories fit well, suggest a new category with isNewCa
     const response = await makeAiChatRequest(requestBody);
 
     if (response && response.choices && response.choices.length > 0) {
-      const aiContent = response.choices[0].message?.content || response.choices[0].content;
+      const aiContent = response.choices[0].message?.content || response.choices[0].text || response.choices[0].content;
       
       if (aiContent) {
         console.log('AI categorization response:', aiContent);

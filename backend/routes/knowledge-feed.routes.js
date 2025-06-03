@@ -195,9 +195,13 @@ async function processDocumentComplete(document, job) {
 
     // Update document with extracted content
     await document.update({
-      extractedText: extractionResult.extractedText,
-      metadata: extractionResult.metadata,
-      processingStage: 'categorizing'
+      category: finalCategory.category,
+      confidence: finalCategory.confidence,
+      processingMethod: finalCategory.method,
+      aiSuggestions: aiResults?.tags || [],
+      aiGeneratedTags: tags,
+      processingReasoning: finalCategory.reasoning,
+      documentType: aiResults?.documentType || 'unknown'
     });
 
     await job.update({ progress: 40 });
@@ -316,6 +320,7 @@ router.get('/recent', async (req, res) => {
       category: doc.category,
       status: doc.status,
       processingStage: doc.processingStage,
+      processingMethod: doc.processingMethod || 'unknown',
       uploadedAt: doc.createdAt,
       uploadedBy: doc.uploadedBy,
       isLegacy: doc.isLegacy,

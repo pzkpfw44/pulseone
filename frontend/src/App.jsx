@@ -10,9 +10,8 @@ import Dashboard from './pages/Dashboard'; // Using existing Dashboard
 
 // InsightsHub pages
 import ChatAssistant from './pages/ChatAssistant';
-import AiReports from './pages/AiReports';
-import Analytics from './pages/Analytics';
-import AiRecommendations from './pages/AiRecommendations';
+import AiContentStudio from './pages/AiContentStudio';
+import AiRecommendations from './pages/AiRecommendations'
 
 // ContextHub pages
 import CompanyLibrary from './pages/CompanyLibrary';
@@ -120,17 +119,10 @@ function App() {
             </ExternalRoute>
           </PrivateRoute>
         } />
-        <Route path="/reports" element={
+        <Route path="/ai-content-studio" element={
           <PrivateRoute>
             <ExternalRoute>
-              <AiReports />
-            </ExternalRoute>
-          </PrivateRoute>
-        } />
-        <Route path="/analytics" element={
-          <PrivateRoute>
-            <ExternalRoute>
-              <Analytics />
+              <AiContentStudio />
             </ExternalRoute>
           </PrivateRoute>
         } />

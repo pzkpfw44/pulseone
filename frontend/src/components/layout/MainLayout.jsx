@@ -207,8 +207,7 @@ export function MainLayout({ children }) {
               InsightsHub
             </div>
             <SidebarNavItem href="/chat" icon={MessageSquare} title="Chat Assistant" />
-            <SidebarNavItem href="/reports" icon={FileText} title="AI Reports" />
-            <SidebarNavItem href="/analytics" icon={BarChart3} title="Analytics" />
+            <SidebarNavItem href="/ai-content-studio" icon={FileText} title="AI Content Studio" />
             <SidebarNavItem href="/recommendations" icon={Lightbulb} title="AI Recommendations" />
 
             <div className="mt-6 mb-2 px-3 text-xs uppercase tracking-wider text-white/60">

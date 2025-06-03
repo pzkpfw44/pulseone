@@ -289,16 +289,38 @@ const EnhancedKnowledgeFeed = () => {
     }
   };
 
-  const getProcessingStageText = (stage) => {
+  const getProcessingStageText = (stage, method) => {
     switch (stage) {
       case 'uploaded': return 'Uploaded';
       case 'extracting_text': return 'Extracting content...';
-      case 'categorizing': return 'AI categorizing...';
+      case 'categorizing': return method === 'ai-enhanced' ? 'AI categorizing...' : 'Pattern categorizing...';
       case 'generating_summary': return 'Generating summary...';
-      case 'completed': return 'Completed';
+      case 'completed': return method === 'ai-enhanced' ? 'AI Processed' : 
+                              method === 'pattern-based' ? 'Pattern Processed' :
+                              method === 'pattern-verified' ? 'Pattern Verified' : 'Completed';
       case 'error': return 'Error occurred';
       default: return stage;
     }
+  };
+
+  const getMethodBadge = (method) => {
+    if (!method || method === 'unknown') return null;
+    
+    const badges = {
+      'ai-enhanced': { text: 'AI', color: 'bg-purple-100 text-purple-700' },
+      'pattern-based': { text: 'Pattern', color: 'bg-blue-100 text-blue-700' },
+      'pattern-verified': { text: 'Verified', color: 'bg-green-100 text-green-700' },
+      'ai-new-category': { text: 'AI+New', color: 'bg-orange-100 text-orange-700' }
+    };
+    
+    const badge = badges[method];
+    if (!badge) return null;
+    
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
+        {badge.text}
+      </span>
+    );
   };
 
   const currentTip = enhancedUploadTips[currentTipIndex];
@@ -690,11 +712,14 @@ const EnhancedKnowledgeFeed = () => {
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
-                      <div className="flex items-center">
-                        {getStatusIcon(upload.status)}
-                        <span className="ml-1 text-sm font-medium text-gray-900">
-                          {getProcessingStageText(upload.processingStage || upload.status)}
-                        </span>
+                      <div className="flex items-center justify-end space-x-2">
+                        {getMethodBadge(upload.processingMethod)}
+                        <div className="flex items-center">
+                          {getStatusIcon(upload.status)}
+                          <span className="ml-1 text-sm font-medium text-gray-900">
+                            {getProcessingStageText(upload.processingStage || upload.status, upload.processingMethod)}
+                          </span>
+                        </div>
                       </div>
                       {upload.processingJob && upload.processingJob.progress > 0 && (
                         <div className="mt-1">
