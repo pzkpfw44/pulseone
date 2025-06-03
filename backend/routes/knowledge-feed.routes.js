@@ -174,6 +174,7 @@ async function startProcessingPipeline(document) {
 }
 
 // Complete document processing
+// Complete document processing
 async function processDocumentComplete(document, job) {
   try {
     // Step 1: Extract text content
@@ -181,6 +182,10 @@ async function processDocumentComplete(document, job) {
       status: 'processing', 
       progress: 10,
       startedAt: new Date()
+    });
+
+    await document.update({
+      processingStage: 'extracting_text'
     });
 
     const extractionResult = await fileProcessor.processFile(
@@ -193,24 +198,19 @@ async function processDocumentComplete(document, job) {
       throw new Error(extractionResult.error);
     }
 
-    // Update document with extracted content
-    await document.update({
-      category: finalCategory.category,
-      confidence: finalCategory.confidence,
-      processingMethod: finalCategory.method,
-      aiSuggestions: aiResults?.tags || [],
-      aiGeneratedTags: tags,
-      processingReasoning: finalCategory.reasoning,
-      documentType: aiResults?.documentType || 'unknown'
-    });
-
     await job.update({ progress: 40 });
 
     // Step 2: Categorize document
     let finalCategory = document.category;
     let aiGeneratedTags = [];
+    let processingMethod = 'pattern-based';
+    let processingReasoning = 'Pre-assigned category';
 
     if (!finalCategory || finalCategory === '') {
+      await document.update({
+        processingStage: 'categorizing'
+      });
+
       const categorizationResult = await categorization.categorizeDocument(
         extractionResult.extractedText,
         document.originalName,
@@ -219,32 +219,42 @@ async function processDocumentComplete(document, job) {
 
       if (categorizationResult.success) {
         finalCategory = categorizationResult.category;
-        aiGeneratedTags = categorizationResult.tags;
-        
-        await document.update({
-          category: finalCategory,
-          aiGeneratedTags: aiGeneratedTags,
-          processingStage: 'generating_summary'
-        });
+        aiGeneratedTags = categorizationResult.tags || [];
+        processingMethod = categorizationResult.method || 'pattern-based';
+        processingReasoning = categorizationResult.reasoning || 'Automatic categorization';
+      } else {
+        // Fallback to default category
+        finalCategory = 'general_documents';
+        processingMethod = 'fallback';
+        processingReasoning = 'Fallback categorization due to processing error';
       }
     }
 
     await job.update({ progress: 70 });
 
     // Step 3: Generate summary (basic for now)
+    await document.update({
+      processingStage: 'generating_summary'
+    });
+    
     const summary = generateDocumentSummary(extractionResult.extractedText);
     
-    await document.update({
-      summary: summary,
-      processingStage: 'completed'
-    });
-
     await job.update({ progress: 90 });
 
-    // Step 4: Final processing
+    // Step 4: Final processing - Update document with all results
     await document.update({
       status: 'processed',
-      processingStage: 'completed'
+      processingStage: 'completed',
+      category: finalCategory,
+      processingMethod: processingMethod,
+      processingReasoning: processingReasoning,
+      aiGeneratedTags: aiGeneratedTags,
+      summary: summary,
+      metadata: {
+        ...extractionResult.metadata,
+        wordCount: extractionResult.metadata?.wordCount || 0,
+        textLength: extractionResult.extractedText?.length || 0
+      }
     });
 
     await job.update({
@@ -252,15 +262,16 @@ async function processDocumentComplete(document, job) {
       progress: 100,
       completedAt: new Date(),
       result: {
-        textLength: extractionResult.extractedText.length,
-        wordCount: extractionResult.metadata.wordCount,
+        textLength: extractionResult.extractedText?.length || 0,
+        wordCount: extractionResult.metadata?.wordCount || 0,
         category: finalCategory,
         tags: aiGeneratedTags.length,
-        warnings: extractionResult.warnings
+        warnings: extractionResult.warnings || [],
+        processingMethod: processingMethod
       }
     });
 
-    console.log(`Document ${document.originalName} processed successfully`);
+    console.log(`Document ${document.originalName} processed successfully with method: ${processingMethod}`);
 
   } catch (error) {
     console.error(`Document processing failed for ${document.originalName}:`, error);

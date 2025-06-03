@@ -192,16 +192,32 @@ If none of the existing categories fit well, suggest a new category with isNewCa
     const response = await makeAiChatRequest(requestBody);
 
     if (response && response.choices && response.choices.length > 0) {
-      const aiContent = response.choices[0].message?.content || response.choices[0].text || response.choices[0].content;
+      const aiContent = response.choices[0].message?.content || response.choices[0].message || response.choices[0].text || response.choices[0].content;
       
       if (aiContent) {
         console.log('AI categorization response:', aiContent);
         
-        // Parse JSON response
+        // Parse JSON response - look for JSON within code blocks or standalone
         try {
-          const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
+          let jsonString = '';
+          
+          // Try to extract JSON from code blocks first
+          const codeBlockMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+          if (codeBlockMatch) {
+            jsonString = codeBlockMatch[1];
+          } else {
+            // Try to find standalone JSON
+            const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              jsonString = jsonMatch[0];
+            }
+          }
+          
+          if (jsonString) {
+            console.log('Extracted JSON string:', jsonString);
+            const parsed = JSON.parse(jsonString);
+            console.log('Successfully parsed AI response:', parsed);
+            
             return {
               success: true,
               category: parsed.category,
@@ -211,11 +227,13 @@ If none of the existing categories fit well, suggest a new category with isNewCa
               reasoning: parsed.reasoning || 'AI analysis',
               tags: parsed.tags || [],
               documentType: parsed.documentType || 'other',
-              aiResponse: aiContent
+              aiResponse: aiContent,
+              method: 'ai-enhanced'
             };
           }
         } catch (parseError) {
           console.error('Failed to parse AI categorization response:', parseError);
+          console.error('Content that failed to parse:', aiContent);
         }
         
         // Fallback parsing if JSON fails
@@ -232,12 +250,15 @@ If none of the existing categories fit well, suggest a new category with isNewCa
       }
     }
 
+    console.error('Failed to extract valid JSON from AI response');
+    console.error('Full response:', JSON.stringify(response, null, 2));
     return {
       success: false,
-      error: 'No valid response from AI',
+      error: 'Failed to parse AI response - no valid JSON found',
       category: null,
       confidence: 0,
-      tags: []
+      tags: [],
+      rawResponse: aiContent
     };
 
   } catch (error) {

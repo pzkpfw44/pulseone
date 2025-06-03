@@ -63,15 +63,23 @@ const EnhancedKnowledgeFeed = () => {
     loadRecentUploads();
     loadUploadStatistics();
     
-    // Auto-refresh recent uploads every 10 seconds when uploading
+    // Auto-refresh recent uploads every 3 seconds when uploading or processing
     const interval = setInterval(() => {
       if (uploading || Object.keys(uploadProgress).length > 0) {
         loadRecentUploads();
+      } else {
+        // Also refresh if any document is still processing
+        const hasProcessingDocs = recentUploads.some(doc => 
+          doc.status === 'processing' || doc.status === 'uploaded'
+        );
+        if (hasProcessingDocs) {
+          loadRecentUploads();
+        }
       }
-    }, 10000);
+    }, 3000); // Refresh every 3 seconds instead of 10
     
     return () => clearInterval(interval);
-  }, [uploading, uploadProgress]);
+  }, [uploading, uploadProgress, recentUploads]);
 
   const loadInitialData = async () => {
     try {
