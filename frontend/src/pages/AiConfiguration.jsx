@@ -1,4 +1,4 @@
-// frontend/src/pages/AiConfiguration.jsx - Enhanced Version
+// frontend/src/pages/AiConfiguration.jsx - Fixed Test Connection Logic
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -31,6 +31,9 @@ const AiConfiguration = () => {
   const [refreshingBalance, setRefreshingBalance] = useState(false);
   const [lastEnteredKey, setLastEnteredKey] = useState('');
   
+  // NEW: Track if we have a valid API key stored
+  const [hasStoredApiKey, setHasStoredApiKey] = useState(false);
+  
   // Storage Management State
   const [storageInfo, setStorageInfo] = useState(null);
   const [loadingStorage, setLoadingStorage] = useState(false);
@@ -56,6 +59,9 @@ const AiConfiguration = () => {
         setEnableSafetyFilters(config.enableSafetyFilters !== false);
         setEnableBiasDetection(config.enableBiasDetection !== false);
         setEnableContentModeration(config.enableContentModeration !== false);
+        
+        // NEW: Track if we have a stored API key
+        setHasStoredApiKey(!!(config.fluxApiKey && config.fluxApiKey !== ''));
       }
 
       // Fetch available models
@@ -175,6 +181,7 @@ const AiConfiguration = () => {
         if (apiKey !== '••••••••') {
           setLastEnteredKey(apiKey);
           setApiKey('••••••••');
+          setHasStoredApiKey(true); // NEW: Mark that we have a stored key
         }
       }
     } catch (err) {
@@ -216,6 +223,7 @@ const AiConfiguration = () => {
   const handleClearApiKey = () => {
     setApiKey('');
     setLastEnteredKey('');
+    setHasStoredApiKey(false); // NEW: Clear the stored key flag
   };
 
   const formatBytes = (bytes, decimals = 2) => {
@@ -225,6 +233,11 @@ const AiConfiguration = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  };
+
+  // NEW: Check if we can test the connection
+  const canTestConnection = () => {
+    return hasStoredApiKey || (apiKey && apiKey !== '' && apiKey !== '••••••••');
   };
 
   if (loading) {
@@ -346,11 +359,11 @@ const AiConfiguration = () => {
               </div>
             </div>
 
-            {/* Test Connection */}
+            {/* Test Connection - FIXED */}
             <div className="mt-4 pt-4 border-t border-gray-100">
               <button
                 onClick={handleTestConnection}
-                disabled={testing || !apiKey || apiKey === '••••••••'}
+                disabled={testing || !canTestConnection()}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {testing ? (
@@ -365,6 +378,11 @@ const AiConfiguration = () => {
                   </>
                 )}
               </button>
+              {hasStoredApiKey && (
+                <p className="text-xs text-gray-500 mt-2">
+                  API key is configured and ready for testing
+                </p>
+              )}
             </div>
           </section>
 
