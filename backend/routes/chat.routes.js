@@ -27,6 +27,12 @@ router.post('/query', async (req, res) => {
       maxResults: 5
     });
 
+    console.log('Chat - Context result:', {
+      foundRelevantContent: contextResult.foundRelevantContent,
+      sourcesCount: contextResult.sources.length,
+      contextLength: contextResult.context.length
+    });
+
     // Step 2: Build prompt with context
     let systemPrompt = `You are a helpful AI assistant that answers questions based on company documents. `;
     
@@ -37,8 +43,12 @@ CONTEXT FROM DOCUMENTS:
 ${contextResult.context}
 
 If the context doesn't contain relevant information for the question, say so clearly.`;
+      
+      console.log('Chat - Using context, system prompt length:', systemPrompt.length);
     } else {
       systemPrompt += `No relevant documents were found for this query. Let the user know that you don't have specific company information about their question.`;
+      
+      console.log('Chat - No context found, using fallback prompt');
     }
 
     // Step 3: Send to AI
@@ -102,6 +112,35 @@ router.get('/info', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get chat info' });
+  }
+});
+
+// Debug endpoint to check chunks
+router.get('/debug/chunks', async (req, res) => {
+  try {
+    const { DocumentChunk, Document } = require('../models');
+    
+    const chunks = await DocumentChunk.findAll({
+      include: [{
+        model: Document,
+        as: 'document',
+        attributes: ['originalName', 'category', 'status']
+      }],
+      limit: 5
+    });
+
+    res.json({
+      totalChunks: await DocumentChunk.count(),
+      sampleChunks: chunks.map(chunk => ({
+        id: chunk.id,
+        chunkIndex: chunk.chunkIndex,
+        contentPreview: chunk.content.substring(0, 200) + '...',
+        wordCount: chunk.wordCount,
+        document: chunk.document
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

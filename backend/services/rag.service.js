@@ -14,6 +14,8 @@ class RagService {
         excludeLegacy = false
       } = options;
 
+      console.log(`RAG Search - Query: "${query}", Options:`, options);
+
       // Build search conditions
       const whereClause = {};
       if (categories.length > 0) {
@@ -22,6 +24,8 @@ class RagService {
       if (excludeLegacy) {
         whereClause.isLegacy = false;
       }
+
+      console.log('RAG Search - Document where clause:', whereClause);
 
       // Get all chunks with document info
       const chunks = await DocumentChunk.findAll({
@@ -39,8 +43,16 @@ class RagService {
         order: [['createdAt', 'DESC']]
       });
 
+      console.log(`RAG Search - Found ${chunks.length} chunks matching query`);
+      
+      if (chunks.length > 0) {
+        console.log('First chunk preview:', chunks[0].content.substring(0, 200));
+      }
+
       // Score and rank chunks
       const rankedChunks = documentChunker.searchChunks(chunks, query, maxResults);
+      
+      console.log(`RAG Search - After ranking: ${rankedChunks.length} chunks`);
 
       return {
         success: true,
