@@ -1,3 +1,4 @@
+// backend/routes/pulse-one.routes.js - UPDATED VERSION
 const express = require('express');
 const router = express.Router();
 
@@ -8,6 +9,18 @@ router.get('/dashboard/orchestration-stats', (req, res) => {
     totalDocuments: { value: '0', subtitle: 'Ready for analysis' },
     ragQueries: { value: '0', subtitle: 'AI interactions' },
     syncStatus: { value: '100%', subtitle: 'All systems synced' }
+  });
+});
+
+// Enhanced stats endpoint
+router.get('/dashboard/enhanced-stats', (req, res) => {
+  res.json({
+    connectedModules: { value: '1', subtitle: 'Pulse 360 active', trend: 0 },
+    totalDocuments: { value: '0', subtitle: 'Ready for analysis', trend: 0 },
+    ragQueries: { value: '0', subtitle: 'AI interactions', trend: 0 },
+    syncStatus: { value: '100%', subtitle: 'All systems synced', trend: 2 },
+    categories: { value: '7', subtitle: '0 AI-suggested', trend: 0 },
+    processingJobs: { value: '0', subtitle: '0 completed', trend: 0 }
   });
 });
 
@@ -41,10 +54,6 @@ router.get('/analytics/dashboard', (req, res) => {
 });
 
 router.get('/library/documents', (req, res) => {
-  res.json([]);
-});
-
-router.get('/knowledge-feed/recent', (req, res) => {
   res.json([]);
 });
 
