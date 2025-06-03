@@ -6,9 +6,11 @@ const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const mime = require('mime-types');
 
-const { Document, Category, ProcessingJob } = require('../models');
 const fileProcessor = require('../utils/fileProcessor');
 const categorization = require('../utils/categorization');
+
+const documentChunker = require('../utils/documentChunker');
+const { Document, Category, ProcessingJob, DocumentChunk } = require('../models');
 
 const router = express.Router();
 
@@ -256,7 +258,25 @@ async function processDocumentComplete(document, job) {
     
     await job.update({ progress: 90 });
 
-    // Step 4: Final processing - Update document with all results
+    // Step 4: Create document chunks for RAG
+    await document.update({
+      processingStage: 'creating_chunks'
+    });
+
+    const chunks = documentChunker.chunkDocument(
+      extractionResult.extractedText,
+      document.id,
+      document.originalName
+    );
+
+    // Save chunks to database
+    if (chunks.length > 0) {
+      await DocumentChunk.bulkCreate(chunks);
+    }
+
+    await job.update({ progress: 95 });
+
+    // Step 5: Final processing - Update document with all results
     await document.update({
       status: 'processed',
       processingStage: 'completed',
@@ -268,7 +288,8 @@ async function processDocumentComplete(document, job) {
       metadata: {
         ...extractionResult.metadata,
         wordCount: extractionResult.metadata?.wordCount || 0,
-        textLength: extractionResult.extractedText?.length || 0
+        textLength: extractionResult.extractedText?.length || 0,
+        chunkCount: chunks.length
       }
     });
 

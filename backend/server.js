@@ -78,6 +78,10 @@ app.get('/api/auth/profile', (req, res) => {
 const knowledgeFeedRoutes = require('./routes/knowledge-feed.routes');
 app.use('/api/knowledge-feed', knowledgeFeedRoutes);
 
+// Chat routes with RAG
+const chatRoutes = require('./routes/chat.routes');
+app.use('/api/chat', chatRoutes);
+
 // AI Configuration routes
 try {
   const aiConfigurationRoutes = require('./routes/ai-configuration.routes');

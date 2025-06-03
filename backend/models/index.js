@@ -222,6 +222,59 @@ const ProcessingJob = sequelize.define('ProcessingJob', {
   timestamps: true
 });
 
+// Document Chunks model for RAG
+const DocumentChunk = sequelize.define('DocumentChunk', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  documentId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: Document,
+      key: 'id'
+    }
+  },
+  chunkIndex: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  content: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  wordCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  startPosition: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  endPosition: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  }
+}, {
+  tableName: 'document_chunks',
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['documentId']
+    },
+    {
+      fields: ['content'], // For text search
+      type: 'FULLTEXT'
+    }
+  ]
+});
+
+// Add associations
+Document.hasMany(DocumentChunk, { foreignKey: 'documentId', as: 'chunks' });
+DocumentChunk.belongsTo(Document, { foreignKey: 'documentId', as: 'document' });
+
 // System Settings model
 const SystemSetting = sequelize.define('SystemSetting', {
   key: {
@@ -401,5 +454,6 @@ module.exports = {
   ProcessingJob,
   SystemSetting,
   BrandingSettings,
+  DocumentChunk,
   initializeDatabase
 };
