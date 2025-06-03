@@ -1,15 +1,13 @@
-// backend/utils/categorization.js
-const axios = require('axios');
+// backend/utils/categorization.js - Enhanced with Flux AI
 const { Category } = require('../models');
+const { categorizeDocument: fluxCategorizeDocument } = require('../services/flux-ai.service');
 
 class CategorizationSystem {
   constructor() {
     this.maxDynamicCategories = 7;
     this.confidenceThreshold = 0.7;
-    this.fluxApiUrl = process.env.FLUX_AI_API_URL || 'https://api.flux.ai';
-    this.fluxApiKey = process.env.FLUX_AI_API_KEY;
     
-    // Predefined category patterns for content analysis
+    // Predefined category patterns for fallback analysis
     this.categoryPatterns = {
       'policies_procedures': {
         keywords: ['policy', 'procedure', 'guideline', 'rule', 'regulation', 'compliance', 'code of conduct'],
@@ -42,25 +40,65 @@ class CategorizationSystem {
     };
   }
 
-  // Main categorization method
+  // Main categorization method - now AI-first with fallback
   async categorizeDocument(text, filename, metadata = {}) {
     try {
-      // Step 1: Pattern-based categorization (fast, local)
-      const patternResults = await this.patternBasedCategorization(text, filename);
-      
-      // Step 2: AI-powered categorization (if pattern confidence is low)
+      console.log('Starting document categorization for:', filename);
+
+      // Step 1: Try AI-powered categorization first
       let aiResults = null;
-      if (patternResults.confidence < this.confidenceThreshold) {
-        aiResults = await this.aiBasedCategorization(text, filename, metadata);
+      const existingCategories = await this.getActiveCategories();
+      
+      try {
+        aiResults = await fluxCategorizeDocument(text, filename, existingCategories);
+        console.log('AI categorization result:', aiResults);
+      } catch (error) {
+        console.warn('AI categorization failed:', error.message);
       }
 
-      // Step 3: Combine results and make final decision
+      // Step 2: If AI succeeds and confidence is good, use AI result
+      if (aiResults && aiResults.success && aiResults.confidence >= this.confidenceThreshold) {
+        console.log('Using AI categorization with high confidence');
+        
+        // Handle new category creation if suggested by AI
+        let finalCategory = aiResults.category;
+        if (aiResults.isNewCategory && aiResults.newCategoryDescription) {
+          const newCategory = await this.considerNewCategory(
+            aiResults.category,
+            aiResults.newCategoryDescription,
+            aiResults.confidence
+          );
+          if (newCategory) {
+            finalCategory = newCategory.name;
+          }
+        }
+
+        // Update category usage
+        await this.updateCategoryUsage(finalCategory);
+
+        return {
+          success: true,
+          category: finalCategory,
+          confidence: aiResults.confidence,
+          method: 'ai-enhanced',
+          aiSuggestions: [],
+          tags: aiResults.tags || [],
+          reasoning: aiResults.reasoning || 'AI analysis',
+          documentType: aiResults.documentType || 'unknown'
+        };
+      }
+
+      // Step 3: If AI fails or low confidence, fall back to pattern-based categorization
+      console.log('Falling back to pattern-based categorization');
+      const patternResults = await this.patternBasedCategorization(text, filename);
+
+      // Step 4: Combine any available AI insights with pattern results
       const finalCategory = await this.combineCategorizations(patternResults, aiResults);
       
-      // Step 4: Generate tags
+      // Step 5: Generate tags
       const tags = await this.generateTags(text, finalCategory);
 
-      // Step 5: Update category usage statistics
+      // Step 6: Update category usage statistics
       await this.updateCategoryUsage(finalCategory.category);
 
       return {
@@ -68,9 +106,10 @@ class CategorizationSystem {
         category: finalCategory.category,
         confidence: finalCategory.confidence,
         method: finalCategory.method,
-        aiSuggestions: aiResults?.suggestions || [],
+        aiSuggestions: aiResults?.tags || [],
         tags: tags,
-        reasoning: finalCategory.reasoning
+        reasoning: finalCategory.reasoning,
+        documentType: aiResults?.documentType || 'unknown'
       };
 
     } catch (error) {
@@ -80,12 +119,13 @@ class CategorizationSystem {
         category: null,
         confidence: 0,
         error: error.message,
-        tags: []
+        tags: [],
+        method: 'error'
       };
     }
   }
 
-  // Pattern-based categorization using local analysis
+  // Enhanced pattern-based categorization (fallback method)
   async patternBasedCategorization(text, filename) {
     const scores = {};
     const textLower = text.toLowerCase();
@@ -132,109 +172,10 @@ class CategorizationSystem {
     };
   }
 
-  // AI-powered categorization using Flux AI
-  async aiBasedCategorization(text, filename, metadata) {
-    if (!this.fluxApiKey) {
-      console.warn('Flux AI API key not configured, skipping AI categorization');
-      return null;
-    }
-
-    try {
-      const existingCategories = await this.getActiveCategories();
-      const textPreview = text.substring(0, 2000); // Limit text for API efficiency
-
-      const prompt = this.buildCategorizationPrompt(textPreview, filename, existingCategories);
-      
-      const response = await axios.post(`${this.fluxApiUrl}/v1/chat/completions`, {
-        model: 'flux-replit-code-v1-3b',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert HR document classifier. Analyze documents and suggest appropriate categories.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 300
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.fluxApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      return this.parseAiCategorization(response.data.choices[0].message.content);
-
-    } catch (error) {
-      console.error('AI categorization failed:', error);
-      return null;
-    }
-  }
-
-  // Build categorization prompt for AI
-  buildCategorizationPrompt(text, filename, existingCategories) {
-    const categoryList = existingCategories.map(cat => `- ${cat.name}: ${cat.description}`).join('\n');
-    
-    return `
-Analyze this document and suggest the most appropriate category:
-
-FILENAME: ${filename}
-
-EXISTING CATEGORIES:
-${categoryList}
-
-DOCUMENT CONTENT (preview):
-${text}
-
-Tasks:
-1. Choose the best existing category OR suggest a new category if none fit well
-2. Provide confidence score (0-1)
-3. If suggesting a new category, explain why it's needed and provide a description
-4. Consider if this is likely legacy/historical data based on content
-
-Respond in JSON format:
-{
-  "category": "category_name",
-  "confidence": 0.95,
-  "isNewCategory": false,
-  "newCategoryDescription": "",
-  "reasoning": "Brief explanation",
-  "isLikely Legacy": false
-}
-`;
-  }
-
-  // Parse AI response
-  parseAiCategorization(aiResponse) {
-    try {
-      // Try to extract JSON from response
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          category: parsed.category,
-          confidence: parsed.confidence || 0.5,
-          isNewCategory: parsed.isNewCategory || false,
-          newCategoryDescription: parsed.newCategoryDescription || '',
-          reasoning: parsed.reasoning || 'AI analysis',
-          isLikelyLegacy: parsed.isLikelyLegacy || false,
-          suggestions: parsed.suggestions || []
-        };
-      }
-    } catch (error) {
-      console.error('Failed to parse AI response:', error);
-    }
-    
-    return null;
-  }
-
-  // Combine pattern and AI results
+  // Combine pattern and AI results intelligently
   async combineCategorizations(patternResults, aiResults) {
     // If no AI results, use pattern results
-    if (!aiResults) {
+    if (!aiResults || !aiResults.success) {
       return patternResults;
     }
 
@@ -315,7 +256,7 @@ Respond in JSON format:
     }
   }
 
-  // Generate tags for document
+  // Enhanced tag generation with AI and pattern-based approaches
   async generateTags(text, category) {
     const tags = new Set();
     
@@ -324,24 +265,73 @@ Respond in JSON format:
       tags.add(category.category.replace('_', ' '));
     }
 
-    // Extract key terms from text
-    const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
+    // Extract key terms from text using improved algorithm
+    const words = text.toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Remove punctuation
+      .match(/\b\w{4,}\b/g) || [];
+    
     const wordFreq = {};
     
     words.forEach(word => {
-      wordFreq[word] = (wordFreq[word] || 0) + 1;
+      // Skip common words
+      if (!this.isCommonWord(word)) {
+        wordFreq[word] = (wordFreq[word] || 0) + 1;
+      }
     });
 
     // Get most frequent meaningful words
-    const commonWords = new Set(['this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'said', 'each', 'which', 'their', 'time', 'would', 'there', 'could', 'other']);
-    
     Object.entries(wordFreq)
-      .filter(([word, freq]) => freq > 2 && !commonWords.has(word))
+      .filter(([word, freq]) => freq > 1 && word.length > 3)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 8)
       .forEach(([word]) => tags.add(word));
 
+    // Add document type-specific tags
+    if (category.category) {
+      const categorySpecificTags = this.getCategorySpecificTags(category.category, text);
+      categorySpecificTags.forEach(tag => tags.add(tag));
+    }
+
     return Array.from(tags).slice(0, 10); // Limit to 10 tags
+  }
+
+  // Check if word is common and should be excluded from tags
+  isCommonWord(word) {
+    const commonWords = new Set([
+      'this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 
+      'said', 'each', 'which', 'their', 'time', 'would', 'there', 
+      'could', 'other', 'after', 'first', 'well', 'also', 'some',
+      'what', 'only', 'more', 'very', 'when', 'much', 'made',
+      'over', 'such', 'even', 'most', 'than', 'here', 'just',
+      'can', 'should', 'may', 'might', 'must', 'shall'
+    ]);
+    return commonWords.has(word);
+  }
+
+  // Get category-specific tags based on content analysis
+  getCategorySpecificTags(categoryName, text) {
+    const textLower = text.toLowerCase();
+    const tags = [];
+
+    switch (categoryName) {
+      case 'policies_procedures':
+        if (textLower.includes('employee')) tags.push('employee-policy');
+        if (textLower.includes('safety')) tags.push('safety');
+        if (textLower.includes('conduct')) tags.push('conduct');
+        break;
+      case 'job_frameworks':
+        if (textLower.includes('manager')) tags.push('management');
+        if (textLower.includes('senior')) tags.push('senior-level');
+        if (textLower.includes('junior')) tags.push('junior-level');
+        break;
+      case 'training_materials':
+        if (textLower.includes('certification')) tags.push('certification');
+        if (textLower.includes('workshop')) tags.push('workshop');
+        if (textLower.includes('online')) tags.push('online-training');
+        break;
+    }
+
+    return tags;
   }
 
   // Update category usage statistics
@@ -355,7 +345,7 @@ Respond in JSON format:
     }
   }
 
-  // Get active categories for UI
+  // Get active categories for UI and AI
   async getActiveCategories() {
     try {
       return await Category.findAll({
@@ -368,11 +358,11 @@ Respond in JSON format:
     }
   }
 
-  // Get categorization statistics
+  // Get enhanced categorization statistics
   async getCategorizationStatistics() {
     try {
       const stats = await Category.findAll({
-        attributes: ['name', 'type', 'usageCount', 'confidence'],
+        attributes: ['name', 'type', 'usageCount', 'confidence', 'aiSuggested'],
         where: { isActive: true },
         order: [['usageCount', 'DESC']]
       });
@@ -381,12 +371,36 @@ Respond in JSON format:
         totalCategories: stats.length,
         staticCategories: stats.filter(s => s.type === 'static').length,
         dynamicCategories: stats.filter(s => s.type === 'dynamic').length,
+        aiSuggestedCategories: stats.filter(s => s.aiSuggested).length,
         mostUsed: stats.slice(0, 5),
-        leastUsed: stats.filter(s => s.usageCount === 0)
+        leastUsed: stats.filter(s => s.usageCount === 0),
+        averageConfidence: stats.reduce((sum, s) => sum + (s.confidence || 0), 0) / stats.length
       };
     } catch (error) {
       console.error('Failed to get categorization statistics:', error);
       return {};
+    }
+  }
+
+  // Test AI categorization capability
+  async testAiCategorization() {
+    try {
+      const testText = "This is a sample employee handbook describing company policies and procedures for workplace conduct.";
+      const testFilename = "employee-handbook.pdf";
+      const existingCategories = await this.getActiveCategories();
+      
+      const result = await fluxCategorizeDocument(testText, testFilename, existingCategories);
+      return {
+        success: result.success,
+        message: result.success ? 'AI categorization is working properly' : 'AI categorization failed',
+        details: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'AI categorization test failed',
+        error: error.message
+      };
     }
   }
 }
