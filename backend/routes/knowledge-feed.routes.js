@@ -523,4 +523,214 @@ router.post('/reprocess/:documentId', async (req, res) => {
   }
 });
 
+router.get('/debug/document/:documentId', async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    
+    const document = await Document.findByPk(documentId, {
+      include: [{
+        model: DocumentChunk,
+        as: 'chunks',
+        limit: 3
+      }]
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Re-extract text to debug
+    const fileProcessor = require('../utils/fileProcessor');
+    const extractionResult = await fileProcessor.processFile(
+      document.filePath,
+      document.originalName,
+      document.mimeType
+    );
+
+    res.json({
+      document: {
+        id: document.id,
+        filename: document.originalName,
+        mimeType: document.mimeType,
+        size: document.size,
+        status: document.status,
+        processingMethod: document.processingMethod
+      },
+      extraction: {
+        success: extractionResult.success,
+        textLength: extractionResult.extractedText?.length || 0,
+        textPreview: extractionResult.extractedText?.substring(0, 500) || 'No text extracted',
+        metadata: extractionResult.metadata,
+        warnings: extractionResult.warnings
+      },
+      chunks: document.chunks?.map(chunk => ({
+        id: chunk.id,
+        chunkIndex: chunk.chunkIndex,
+        wordCount: chunk.wordCount,
+        contentPreview: chunk.content.substring(0, 200) + '...'
+      })) || []
+    });
+
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk reprocess documents with improved extraction
+router.post('/reprocess-all', async (req, res) => {
+  try {
+    const { 
+      onlyFailed = false, 
+      onlyLowQuality = false, 
+      forceReprocess = false 
+    } = req.body;
+
+    let whereClause = {};
+    
+    if (onlyFailed) {
+      whereClause.status = 'error';
+    } else if (onlyLowQuality) {
+      // Find documents with very short extracted text or low word count
+      whereClause = {
+        status: 'processed',
+        [Op.or]: [
+          { '$metadata.wordCount$': { [Op.lt]: 50 } },
+          { '$metadata.textLength$': { [Op.lt]: 200 } },
+          { '$metadata.qualityScore$': { [Op.lt]: 40 } }
+        ]
+      };
+    } else if (!forceReprocess) {
+      // Only reprocess documents that haven't been processed or failed
+      whereClause.status = { [Op.in]: ['uploaded', 'error'] };
+    }
+
+    const documents = await Document.findAll({
+      where: whereClause,
+      order: [['createdAt', 'DESC']],
+      limit: 20 // Limit to prevent overwhelming the system
+    });
+
+    console.log(`[Reprocess] Found ${documents.length} documents to reprocess`);
+
+    const results = [];
+    
+    for (const document of documents) {
+      try {
+        // Reset document status
+        await document.update({
+          status: 'processing',
+          processingStage: 'reprocessing',
+          errorMessage: null
+        });
+
+        // Delete existing chunks
+        await DocumentChunk.destroy({
+          where: { documentId: document.id }
+        });
+
+        // Create new processing job
+        const job = await ProcessingJob.create({
+          documentId: document.id,
+          jobType: 'text_extraction',
+          status: 'processing'
+        });
+
+        // Start reprocessing (async)
+        setImmediate(async () => {
+          await processDocumentComplete(document, job);
+        });
+
+        results.push({
+          documentId: document.id,
+          filename: document.originalName,
+          status: 'reprocessing_started',
+          previousStatus: document.status
+        });
+
+      } catch (error) {
+        console.error(`Failed to start reprocessing for ${document.originalName}:`, error);
+        results.push({
+          documentId: document.id,
+          filename: document.originalName,
+          status: 'reprocessing_failed',
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Started reprocessing ${results.length} documents`,
+      results: results,
+      totalFound: documents.length
+    });
+
+  } catch (error) {
+    console.error('Bulk reprocess error:', error);
+    res.status(500).json({ 
+      error: 'Failed to start bulk reprocessing',
+      details: error.message 
+    });
+  }
+});
+
+// Get reprocessing candidates
+router.get('/reprocess-candidates', async (req, res) => {
+  try {
+    const failed = await Document.count({ where: { status: 'error' } });
+    
+    const lowQuality = await Document.count({
+      where: {
+        status: 'processed',
+        [Op.or]: [
+          { '$metadata.wordCount$': { [Op.lt]: 50 } },
+          { '$metadata.textLength$': { [Op.lt]: 200 } },
+          { '$metadata.qualityScore$': { [Op.lt]: 40 } }
+        ]
+      }
+    });
+
+    const unprocessed = await Document.count({ 
+      where: { status: { [Op.in]: ['uploaded', 'processing'] } } 
+    });
+
+    // Get sample documents for each category
+    const failedDocs = await Document.findAll({
+      where: { status: 'error' },
+      limit: 5,
+      attributes: ['id', 'originalName', 'errorMessage', 'createdAt']
+    });
+
+    const lowQualityDocs = await Document.findAll({
+      where: {
+        status: 'processed',
+        [Op.or]: [
+          { '$metadata.wordCount$': { [Op.lt]: 50 } },
+          { '$metadata.textLength$': { [Op.lt]: 200 } }
+        ]
+      },
+      limit: 5,
+      attributes: ['id', 'originalName', 'metadata', 'createdAt']
+    });
+
+    res.json({
+      counts: {
+        failed,
+        lowQuality,
+        unprocessed,
+        total: failed + lowQuality + unprocessed
+      },
+      samples: {
+        failed: failedDocs,
+        lowQuality: lowQualityDocs
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting reprocess candidates:', error);
+    res.status(500).json({ error: 'Failed to get reprocess candidates' });
+  }
+});
+
 module.exports = router;

@@ -105,27 +105,150 @@ class FileProcessor {
 
   // PDF content extraction
   async extractFromPDF(filePath, originalName) {
+  try {
+    console.log(`[PDF Extraction] Starting extraction for: ${originalName}`);
+    
+    const dataBuffer = await fs.readFile(filePath);
+    console.log(`[PDF Extraction] File size: ${dataBuffer.length} bytes`);
+    
+    // Try multiple extraction approaches
+    let extractedText = '';
+    let extractionMethod = 'unknown';
+    let warnings = [];
+
     try {
-      const dataBuffer = await fs.readFile(filePath);
+      // Primary extraction method
       const data = await pdfParse(dataBuffer, {
-        // Optimize for text extraction, ignore images
         max: 0, // No page limit
-        version: 'v1.10.100'
+        version: 'v1.10.100',
+        // Additional options for better text extraction
+        normalizeWhitespace: false,
+        disableCombineTextItems: false
       });
 
+      extractedText = data.text;
+      extractionMethod = 'pdf-parse-primary';
+      
+      console.log(`[PDF Extraction] Primary method extracted ${data.text.length} characters from ${data.numpages} pages`);
+      
+      // If we got very little text, try alternative extraction
+      if (data.text.length < 100) {
+        console.log(`[PDF Extraction] Low text content (${data.text.length} chars), trying alternative extraction`);
+        
+        try {
+          // Alternative extraction with different options
+          const altData = await pdfParse(dataBuffer, {
+            max: 0,
+            // Try with different settings
+            normalizeWhitespace: true,
+            disableCombineTextItems: true
+          });
+          
+          if (altData.text.length > extractedText.length) {
+            extractedText = altData.text;
+            extractionMethod = 'pdf-parse-alternative';
+            console.log(`[PDF Extraction] Alternative method improved extraction to ${altData.text.length} characters`);
+          }
+        } catch (altError) {
+          console.warn(`[PDF Extraction] Alternative method failed: ${altError.message}`);
+        }
+      }
+
+      // Check if extraction seems successful
+      if (extractedText.length < 50) {
+        warnings.push({
+          type: 'warning',
+          message: `Very little text extracted (${extractedText.length} characters)`,
+          suggestion: 'PDF may contain mostly images or be password protected. Consider converting to a text-based format.'
+        });
+      }
+
+      // Check for common PDF issues
+      if (extractedText.includes('�') || extractedText.includes('\\u')) {
+        warnings.push({
+          type: 'warning',
+          message: 'Possible encoding issues detected in extracted text',
+          suggestion: 'Some characters may not have been extracted correctly.'
+        });
+      }
+
+      const cleanText = this.cleanExtractedText(extractedText);
+      
+      console.log(`[PDF Extraction] Final extraction: ${cleanText.length} characters (cleaned from ${extractedText.length})`);
+
       return {
-        text: this.cleanExtractedText(data.text),
-        method: 'pdf-parse',
+        text: cleanText,
+        method: extractionMethod,
         stats: {
-          pages: data.numpages,
-          textLength: data.text.length,
-          wordCount: this.countWords(data.text)
+          pages: data.numpages || 0,
+          textLength: cleanText.length,
+          originalTextLength: extractedText.length,
+          wordCount: this.countWords(cleanText),
+          extractionQuality: this.assessExtractionQuality(cleanText, dataBuffer.length)
+        },
+        warnings: warnings,
+        debug: {
+          firstPagePreview: extractedText.substring(0, 500),
+          hasMetadata: !!data.metadata,
+          pdfVersion: data.version,
+          fileSize: dataBuffer.length
         }
       };
-    } catch (error) {
-      throw new Error(`PDF extraction failed: ${error.message}`);
+
+    } catch (pdfError) {
+      console.error(`[PDF Extraction] pdf-parse failed: ${pdfError.message}`);
+      
+      // Try to provide helpful error information
+      let errorMessage = `PDF extraction failed: ${pdfError.message}`;
+      let suggestions = [];
+      
+      if (pdfError.message.includes('Invalid PDF')) {
+        suggestions.push('File may be corrupted or not a valid PDF');
+      } else if (pdfError.message.includes('password')) {
+        suggestions.push('PDF appears to be password protected');
+      } else if (pdfError.message.includes('encryption')) {
+        suggestions.push('PDF uses encryption that prevents text extraction');
+      } else {
+        suggestions.push('Try converting the PDF to a different format or reducing file size');
+      }
+
+      throw new Error(`${errorMessage}. Suggestions: ${suggestions.join(', ')}`);
     }
+
+  } catch (error) {
+    console.error(`[PDF Extraction] Fatal error for ${originalName}:`, error);
+    throw new Error(`PDF extraction failed: ${error.message}`);
   }
+}
+
+// Add this helper method to assess extraction quality
+assessExtractionQuality(text, fileSize) {
+  if (!text || text.length === 0) return 0;
+  
+  const fileSizeMB = fileSize / (1024 * 1024);
+  const textToFileSizeRatio = text.length / fileSize;
+  
+  let score = 50; // Base score
+  
+  // Text length scoring
+  if (text.length > 1000) score += 20;
+  else if (text.length > 500) score += 10;
+  else if (text.length < 100) score -= 30;
+  
+  // Text to file size ratio (indicates how much actual text vs images/formatting)
+  if (textToFileSizeRatio > 0.01) score += 20; // Good ratio
+  else if (textToFileSizeRatio < 0.001) score -= 20; // Poor ratio, likely image-heavy
+  
+  // Check for meaningful content patterns
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  if (sentences.length > 5) score += 10;
+  
+  // Check for repeated characters or gibberish
+  const repeatedChars = text.match(/(.)\1{5,}/g);
+  if (repeatedChars && repeatedChars.length > 3) score -= 15;
+  
+  return Math.max(0, Math.min(100, score));
+}
 
   // DOCX content extraction
   async extractFromDOCX(filePath, originalName) {
