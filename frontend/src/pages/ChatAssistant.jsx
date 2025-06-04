@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Send, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, FileText, AlertCircle, Loader2, X } from 'lucide-react';
 import api from '../services/api';
 
 const ChatAssistant = () => {
@@ -17,9 +17,33 @@ const ChatAssistant = () => {
     try {
       const response = await api.get('/chat/info');
       setChatInfo(response.data);
+      console.log('Chat info loaded:', response.data); // Debug log
     } catch (error) {
       console.error('Error loading chat info:', error);
     }
+  };
+
+  // Format AI response text to improve readability
+  const formatAiResponse = (text) => {
+    if (!text) return text;
+    
+    // Convert bullet points and improve formatting
+    let formatted = text
+      // Convert asterisks to bullet points
+      .replace(/\* \*\*(.*?)\*\*:/g, '• **$1**:')
+      .replace(/\*\*(.*?)\*\*/g, '**$1**')
+      // Convert tabs to proper indentation
+      .replace(/\t\+/g, '  •')
+      .replace(/\t/g, '    ')
+      // Improve spacing around sections
+      .replace(/\n\* /g, '\n• ')
+      .replace(/\n\n\*/g, '\n\n•')
+      // Clean up multiple spaces
+      .replace(/  +/g, ' ')
+      // Ensure proper line breaks before bullet points
+      .replace(/([^\n])\n• /g, '$1\n\n• ');
+    
+    return formatted;
   };
 
   const sendMessage = async () => {
@@ -37,7 +61,7 @@ const ChatAssistant = () => {
     setIsLoading(true);
 
     try {
-      console.log('Sending chat request:', inputMessage); // Debug log
+      console.log('Sending chat request:', inputMessage);
 
       const response = await api.post('/chat/query', {
         message: inputMessage,
@@ -45,25 +69,25 @@ const ChatAssistant = () => {
         categories: []
       });
 
-      console.log('Full chat response:', response.data); // Debug log
+      console.log('Full chat response:', response.data);
 
-      // Enhanced response parsing to handle different response formats
+      // Enhanced response parsing
       let aiResponseText = '';
       
       if (response.data.success === false) {
         aiResponseText = response.data.error || 'Sorry, I encountered an error while processing your question.';
       } else if (response.data.response) {
-        aiResponseText = response.data.response;
+        aiResponseText = formatAiResponse(response.data.response);
       } else if (response.data.message) {
-        aiResponseText = response.data.message;
+        aiResponseText = formatAiResponse(response.data.message);
       } else if (response.data.answer) {
-        aiResponseText = response.data.answer;
+        aiResponseText = formatAiResponse(response.data.answer);
       } else {
         console.warn('Unexpected response format:', response.data);
         aiResponseText = 'Sorry, I received an unexpected response format.';
       }
 
-      console.log('Parsed AI response text:', aiResponseText); // Debug log
+      console.log('Formatted AI response text:', aiResponseText);
       
       const aiMessage = {
         id: Date.now() + 1,
@@ -73,19 +97,16 @@ const ChatAssistant = () => {
         sources: response.data.sources || [],
         foundRelevantContent: response.data.foundRelevantContent,
         totalDocumentsSearched: response.data.totalDocumentsSearched,
-        rawResponse: response.data // Keep full response for debugging
+        rawResponse: response.data
       };
 
-      console.log('Created AI message:', aiMessage); // Debug log
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (error) {
       console.error('Chat error:', error);
-      console.error('Error response:', error.response?.data);
       
       let errorMessage = 'Sorry, I encountered an error while processing your question.';
       
-      // Try to extract more specific error information
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.response?.data?.message) {
@@ -98,12 +119,7 @@ const ChatAssistant = () => {
         id: Date.now() + 1,
         type: 'error',
         content: errorMessage,
-        timestamp: new Date(),
-        debug: {
-          originalError: error.message,
-          responseData: error.response?.data,
-          status: error.response?.status
-        }
+        timestamp: new Date()
       };
       
       setMessages(prev => [...prev, errorMessageObj]);
@@ -119,21 +135,73 @@ const ChatAssistant = () => {
     }
   };
 
+  // Component to render formatted text with markdown-like styling
+  const FormattedText = ({ text }) => {
+    const lines = text.split('\n');
+    
+    return (
+      <div className="space-y-2">
+        {lines.map((line, index) => {
+          if (line.trim() === '') return <br key={index} />;
+          
+          // Handle bullet points
+          if (line.includes('•')) {
+            const [indent, content] = line.split('•');
+            const indentLevel = indent.length;
+            return (
+              <div key={index} className={`flex items-start ${indentLevel > 0 ? 'ml-4' : ''}`}>
+                <span className="text-gray-600 mr-2 mt-1">•</span>
+                <span className="flex-1">{content.trim()}</span>
+              </div>
+            );
+          }
+          
+          // Handle bold text
+          if (line.includes('**')) {
+            const parts = line.split(/(\*\*.*?\*\*)/);
+            return (
+              <p key={index} className="mb-1">
+                {parts.map((part, partIndex) => {
+                  if (part.startsWith('**') && part.endsWith('**')) {
+                    return <strong key={partIndex}>{part.slice(2, -2)}</strong>;
+                  }
+                  return part;
+                })}
+              </p>
+            );
+          }
+          
+          // Regular text
+          return <p key={index} className="mb-1">{line}</p>;
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">AI Chat Assistant</h1>
-        <p className="text-gray-600">Ask questions about your uploaded documents</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">AI Chat Assistant</h1>
+          <p className="text-gray-600">Ask questions about your uploaded documents</p>
+        </div>
+        <button 
+          onClick={loadChatInfo}
+          className="inline-flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Refresh
+        </button>
       </div>
 
       {/* Chat Info */}
-      {chatInfo && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-blue-900">Knowledge Base Status</h3>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-blue-900">Knowledge Base Status</h3>
+            {chatInfo ? (
               <p className="text-sm text-blue-700 mt-1">
                 {chatInfo.available ? (
                   `Ready to answer questions from ${chatInfo.totalDocuments} documents (${chatInfo.totalChunks} searchable sections)`
@@ -141,10 +209,12 @@ const ChatAssistant = () => {
                   'No documents available. Upload documents in Knowledge Feed to get started.'
                 )}
               </p>
-            </div>
+            ) : (
+              <p className="text-sm text-blue-700 mt-1">Loading knowledge base status...</p>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Chat Container */}
       <div className="bg-white rounded-lg shadow-sm border flex flex-col h-96">
@@ -159,18 +229,24 @@ const ChatAssistant = () => {
           ) : (
             messages.map(message => (
               <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-3/4 p-3 rounded-lg ${
+                <div className={`max-w-3/4 p-4 rounded-lg ${
                   message.type === 'user' 
                     ? 'bg-charcoal-600 text-white' 
                     : message.type === 'error'
                     ? 'bg-red-50 text-red-800 border border-red-200'
                     : 'bg-gray-100 text-gray-900'
                 }`}>
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.type === 'user' ? (
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    <div className="text-sm">
+                      <FormattedText text={message.content} />
+                    </div>
+                  )}
                   
                   {/* Sources */}
                   {message.sources && message.sources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-4 pt-3 border-t border-gray-200">
                       <p className="text-xs font-medium text-gray-600 mb-2">Sources:</p>
                       <div className="space-y-1">
                         {message.sources.map((source, index) => (
@@ -198,26 +274,6 @@ const ChatAssistant = () => {
                         </span>
                       )}
                     </div>
-                  )}
-
-                  {/* Debug Info (only show in development) */}
-                  {process.env.NODE_ENV === 'development' && message.debug && (
-                    <details className="mt-2">
-                      <summary className="text-xs text-gray-400 cursor-pointer">Debug Info</summary>
-                      <pre className="text-xs text-gray-400 mt-1 bg-gray-800 text-white p-2 rounded overflow-auto">
-                        {JSON.stringify(message.debug, null, 2)}
-                      </pre>
-                    </details>
-                  )}
-
-                  {/* Raw Response Debug (development only) */}
-                  {process.env.NODE_ENV === 'development' && message.rawResponse && (
-                    <details className="mt-2">
-                      <summary className="text-xs text-gray-400 cursor-pointer">Raw API Response</summary>
-                      <pre className="text-xs text-gray-400 mt-1 bg-gray-800 text-white p-2 rounded overflow-auto max-h-32">
-                        {JSON.stringify(message.rawResponse, null, 2)}
-                      </pre>
-                    </details>
                   )}
                 </div>
               </div>

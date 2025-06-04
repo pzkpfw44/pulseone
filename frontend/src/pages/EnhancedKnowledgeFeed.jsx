@@ -247,7 +247,7 @@ const EnhancedKnowledgeFeed = () => {
       if (response.data.success) {
         // Clear files and reset form
         setFiles([]);
-        setUploadProgress({});
+        setUploadProgress({}); // Clear progress immediately on success
         
         // Refresh data
         loadRecentUploads();
@@ -260,8 +260,19 @@ const EnhancedKnowledgeFeed = () => {
     } catch (error) {
       console.error('Upload error:', error);
       setUploadProgress({ error: error.message });
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setUploadProgress({});
+      }, 5000);
     } finally {
       setUploading(false);
+      // Additional cleanup - ensure progress is cleared
+      setTimeout(() => {
+        if (!uploading) {
+          setUploadProgress({});
+        }
+      }, 1000);
     }
   };
 
@@ -317,18 +328,28 @@ const EnhancedKnowledgeFeed = () => {
     if (!method || method === 'unknown') return null;
     
     const badges = {
-      'ai-enhanced': { text: 'AI', color: 'bg-purple-100 text-purple-700' },
-      'pattern-based': { text: 'Basic', color: 'bg-blue-100 text-blue-700' },
-      'pattern-verified': { text: 'Basic+', color: 'bg-green-100 text-green-700' },
-      'ai-new-category': { text: 'AI+New', color: 'bg-orange-100 text-orange-700' }
+      'ai-enhanced': { text: 'AI Enhanced', color: 'bg-purple-100 text-purple-700', icon: '🤖' },
+      'pattern-based': { text: 'Pattern Match', color: 'bg-blue-100 text-blue-700', icon: '🔍' },
+      'pattern-verified': { text: 'Pattern+', color: 'bg-green-100 text-green-700', icon: '✓' },
+      'ai-new-category': { text: 'AI+New Cat', color: 'bg-orange-100 text-orange-700', icon: '🆕' },
+      'fallback': { text: 'Basic', color: 'bg-gray-100 text-gray-700', icon: '📄' },
+      'pattern-fallback': { text: 'Pattern Fallback', color: 'bg-yellow-100 text-yellow-700', icon: '⚠️' },
+      'pre-assigned': { text: 'Pre-assigned', color: 'bg-indigo-100 text-indigo-700', icon: '👤' }
     };
     
     const badge = badges[method];
-    if (!badge) return null;
+    if (!badge) {
+      // Fallback for any unknown method
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+          📄 Basic
+        </span>
+      );
+    }
     
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.color}`}>
-        {badge.text}
+        {badge.icon} {badge.text}
       </span>
     );
   };
@@ -655,29 +676,40 @@ const EnhancedKnowledgeFeed = () => {
               
               {/* Upload Progress */}
               {Object.keys(uploadProgress).length > 0 && (
-                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 5%, white)' }}>
+                <div className={`mt-4 p-4 rounded-lg transition-all duration-300 ${
+                  uploadProgress.error ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'
+                }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium" style={{ color: 'var(--secondary-color)' }}>
+                    <span className={`text-sm font-medium ${
+                      uploadProgress.error ? 'text-red-800' : 'text-blue-800'
+                    }`}>
                       {uploadProgress.error ? 'Upload Failed' : 
-                       uploading ? 'Uploading...' : 'Processing...'}
+                      uploading ? 'Uploading...' : 'Processing...'}
                     </span>
-                    {uploadProgress.overall && (
-                      <span className="text-sm" style={{ color: 'var(--primary-color)' }}>{uploadProgress.overall}%</span>
+                    {uploadProgress.overall && !uploadProgress.error && (
+                      <span className="text-sm text-blue-600">{uploadProgress.overall}%</span>
                     )}
+                    {/* Close button for manual dismissal */}
+                    <button
+                      onClick={() => setUploadProgress({})}
+                      className="text-gray-400 hover:text-gray-600 ml-2"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  {uploadProgress.overall && (
+                  {uploadProgress.overall && !uploadProgress.error && (
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${uploadProgress.overall}%`,
-                          backgroundColor: 'var(--primary-color)'
-                        }}
+                        className="h-2 rounded-full transition-all duration-300 bg-blue-600"
+                        style={{ width: `${uploadProgress.overall}%` }}
                       ></div>
                     </div>
                   )}
                   {uploadProgress.error && (
-                    <p className="text-sm text-red-600 mt-2">{uploadProgress.error}</p>
+                    <div className="text-sm text-red-700 mt-2 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      {uploadProgress.error}
+                    </div>
                   )}
                 </div>
               )}

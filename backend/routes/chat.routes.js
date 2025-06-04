@@ -142,27 +142,194 @@ If the context doesn't contain relevant information for the question, say so cle
   }
 });
 
-// Get chat capabilities info
+// Get chat capabilities info - IMPROVED VERSION
 router.get('/info', async (req, res) => {
   try {
     const { DocumentChunk, Document } = require('../models');
     
-    const totalChunks = await DocumentChunk.count();
-    const totalDocuments = await Document.count({ where: { status: 'processed' } });
+    console.log('Getting chat info...');
     
-    res.json({
+    // Get counts with better error handling
+    const totalChunks = await DocumentChunk.count().catch(err => {
+      console.error('Error counting chunks:', err);
+      return 0;
+    });
+    
+    const totalDocuments = await Document.count({ 
+      where: { status: 'processed' } 
+    }).catch(err => {
+      console.error('Error counting documents:', err);
+      return 0;
+    });
+    
+    const processingDocuments = await Document.count({ 
+      where: { status: 'processing' } 
+    }).catch(err => {
+      console.error('Error counting processing documents:', err);
+      return 0;
+    });
+    
+    console.log(`Chat info: ${totalDocuments} processed docs, ${totalChunks} chunks, ${processingDocuments} processing`);
+    
+    // Additional debug info
+    const allDocuments = await Document.findAll({
+      attributes: ['id', 'originalName', 'status', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    }).catch(err => {
+      console.error('Error getting sample documents:', err);
+      return [];
+    });
+    
+    console.log('Sample documents:', allDocuments.map(d => ({
+      name: d.originalName,
+      status: d.status,
+      id: d.id
+    })));
+    
+    const response = {
       available: totalChunks > 0,
       totalDocuments,
       totalChunks,
+      processingDocuments,
       capabilities: [
         'Answer questions about uploaded documents',
-        'Search across all processed documents',
+        'Search across all processed documents', 
         'Provide source citations',
         'Filter by document categories'
-      ]
-    });
+      ],
+      debug: {
+        sampleDocuments: allDocuments.slice(0, 3).map(d => ({
+          name: d.originalName,
+          status: d.status
+        }))
+      }
+    };
+    
+    console.log('Sending chat info response:', response);
+    res.json(response);
+    
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get chat info' });
+    console.error('Error getting chat info:', error);
+    res.status(500).json({ 
+      error: 'Failed to get chat info',
+      available: false,
+      totalDocuments: 0,
+      totalChunks: 0
+    });
+  }
+});
+
+// Add a debug endpoint to check database state
+router.get('/debug/database', async (req, res) => {
+  try {
+    const { DocumentChunk, Document, sequelize } = require('../models');
+    
+    // Test database connection
+    await sequelize.authenticate();
+    
+    const documents = await Document.findAll({
+      attributes: ['id', 'originalName', 'status', 'mimeType', 'size', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: 10
+    });
+    
+    const chunks = await DocumentChunk.findAll({
+      attributes: ['id', 'documentId', 'chunkIndex', 'wordCount'],
+      include: [{
+        model: Document,
+        as: 'document',
+        attributes: ['originalName', 'status']
+      }],
+      limit: 10
+    });
+    
+    const stats = {
+      totalDocuments: await Document.count(),
+      processedDocuments: await Document.count({ where: { status: 'processed' } }),
+      processingDocuments: await Document.count({ where: { status: 'processing' } }),
+      errorDocuments: await Document.count({ where: { status: 'error' } }),
+      totalChunks: await DocumentChunk.count()
+    };
+    
+    res.json({
+      success: true,
+      databaseConnected: true,
+      stats,
+      sampleDocuments: documents,
+      sampleChunks: chunks.map(chunk => ({
+        id: chunk.id,
+        documentName: chunk.document?.originalName,
+        chunkIndex: chunk.chunkIndex,
+        wordCount: chunk.wordCount,
+        contentPreview: chunk.content ? chunk.content.substring(0, 100) + '...' : 'No content'
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Database debug error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      databaseConnected: false
+    });
+  }
+});
+
+// Quick test endpoint for RAG search
+router.get('/test-search/:query', async (req, res) => {
+  try {
+    const query = req.params.query;
+    console.log(`Testing RAG search for: "${query}"`);
+    
+    const ragResult = await ragService.searchDocuments(query, {
+      maxResults: 5,
+      categories: [],
+      excludeLegacy: false
+    });
+    
+    res.json({
+      query,
+      success: ragResult.success,
+      chunksFound: ragResult.chunks?.length || 0,
+      totalInDatabase: ragResult.totalFound || 0,
+      chunks: ragResult.chunks?.map(chunk => ({
+        id: chunk.id,
+        documentName: chunk.document?.originalName,
+        chunkIndex: chunk.chunkIndex,
+        relevanceScore: chunk.relevanceScore,
+        contentPreview: chunk.content?.substring(0, 200) + '...'
+      })) || []
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      query: req.params.query
+    });
+  }
+});
+
+// Quick database stats endpoint
+router.get('/quick-stats', async (req, res) => {
+  try {
+    const { DocumentChunk, Document } = require('../models');
+    
+    const [totalDocs, processedDocs, totalChunks] = await Promise.all([
+      Document.count(),
+      Document.count({ where: { status: 'processed' } }),
+      DocumentChunk.count()
+    ]);
+    
+    res.json({
+      totalDocuments: totalDocs,
+      processedDocuments: processedDocs,
+      totalChunks: totalChunks,
+      chatAvailable: totalChunks > 0
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
