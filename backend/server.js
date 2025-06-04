@@ -1,4 +1,4 @@
-// backend/server.js - Fixed AI Configuration Integration
+// backend/server.js - Enhanced with AI Content Studio and Conversation Management
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,11 +27,15 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     message: 'Pulse One API is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: '2.0.0',
     features: {
       knowledgeFeed: true,
       aiCategorization: !!process.env.FLUX_AI_API_KEY,
-      fluxAiIntegration: true
+      fluxAiIntegration: true,
+      aiContentStudio: true,
+      enhancedRag: true,
+      conversationManagement: true,
+      legalFrameworks: true
     }
   });
 });
@@ -39,8 +43,8 @@ app.get('/api/health', (req, res) => {
 // Version endpoint
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '1.0.0',
-    codename: 'Genesis'
+    version: '2.0.0',
+    codename: 'Enhanced Genesis'
   });
 });
 
@@ -78,9 +82,35 @@ app.get('/api/auth/profile', (req, res) => {
 const knowledgeFeedRoutes = require('./routes/knowledge-feed.routes');
 app.use('/api/knowledge-feed', knowledgeFeedRoutes);
 
-// Chat routes with RAG
-const chatRoutes = require('./routes/chat.routes');
-app.use('/api/chat', chatRoutes);
+// Enhanced Chat routes with conversation management
+try {
+  const enhancedChatRoutes = require('./routes/enhanced-chat.routes');
+  app.use('/api/chat', enhancedChatRoutes);
+  console.log('✅ Enhanced Chat routes loaded');
+} catch (error) {
+  console.error('❌ Failed to load Enhanced Chat routes:', error.message);
+  // Fallback to basic chat routes
+  const chatRoutes = require('./routes/chat.routes');
+  app.use('/api/chat', chatRoutes);
+}
+
+// AI Content Studio routes
+try {
+  const aiContentStudioRoutes = require('./routes/ai-content-studio.routes');
+  app.use('/api/ai-content-studio', aiContentStudioRoutes);
+  console.log('✅ AI Content Studio routes loaded');
+} catch (error) {
+  console.error('❌ Failed to load AI Content Studio routes:', error.message);
+  
+  // Fallback endpoint
+  app.get('/api/ai-content-studio/templates', (req, res) => {
+    res.json({
+      success: false,
+      message: 'AI Content Studio not yet implemented',
+      templates: []
+    });
+  });
+}
 
 // AI Configuration routes
 try {
@@ -90,7 +120,7 @@ try {
 } catch (error) {
   console.error('❌ Failed to load AI Configuration routes:', error.message);
   
-  // Fallback AI configuration endpoint if routes fail to load
+  // Fallback AI configuration endpoint
   app.get('/api/ai-configuration', (req, res) => {
     res.json({
       fluxApiKey: process.env.FLUX_AI_API_KEY ? '••••••••' : '',
@@ -113,14 +143,23 @@ try {
   console.error('❌ Failed to load Branding Settings routes:', error.message);
 }
 
+// Conversation Management routes
+try {
+  const conversationRoutes = require('./routes/conversation.routes');
+  app.use('/api/conversations', conversationRoutes);
+  console.log('✅ Conversation Management routes loaded');
+} catch (error) {
+  console.error('❌ Failed to load Conversation Management routes:', error.message);
+}
+
 // Original Pulse One routes (for backward compatibility)
 const pulseOneRoutes = require('./routes/pulse-one.routes');
 app.use('/api', pulseOneRoutes);
 
-// Enhanced dashboard endpoint with real data
+// Enhanced dashboard endpoint with comprehensive data
 app.get('/api/dashboard/enhanced-stats', async (req, res) => {
   try {
-    const { Document, Category, ProcessingJob, SystemSetting } = require('./models');
+    const { Document, Category, ProcessingJob, SystemSetting, Conversation, AiGenerationHistory } = require('./models');
     
     // Get document statistics
     const totalDocuments = await Document.count();
@@ -137,6 +176,20 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
     const totalJobs = await ProcessingJob.count();
     const completedJobs = await ProcessingJob.count({ where: { status: 'completed' } });
     
+    // Get conversation statistics
+    const totalConversations = await Conversation.count();
+    const activeConversations = await Conversation.count({ where: { isActive: true } });
+    
+    // Get AI generation statistics
+    const totalGenerations = await AiGenerationHistory.count();
+    const recentGenerations = await AiGenerationHistory.count({
+      where: {
+        createdAt: {
+          [require('sequelize').Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+        }
+      }
+    });
+    
     // Check AI configuration status
     let isAiConfigured = false;
     try {
@@ -146,7 +199,6 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
       isAiConfigured = !!(aiConfig && aiConfig.value && aiConfig.value.fluxApiKey);
     } catch (aiError) {
       console.warn('Could not check AI configuration:', aiError.message);
-      // Fallback to environment variable check
       isAiConfigured = !!process.env.FLUX_AI_API_KEY;
     }
     
@@ -162,9 +214,9 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
         trend: processedDocuments > 0 ? 10 : 0
       },
       ragQueries: { 
-        value: '0', 
-        subtitle: 'AI interactions',
-        trend: 0
+        value: totalConversations.toString(), 
+        subtitle: `${activeConversations} active chats`,
+        trend: activeConversations > 0 ? 15 : 0
       },
       syncStatus: { 
         value: processingDocuments > 0 ? '85%' : '100%', 
@@ -180,6 +232,11 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
         value: totalJobs.toString(),
         subtitle: `${completedJobs} completed`,
         trend: completedJobs > 0 ? 8 : 0
+      },
+      aiGenerations: {
+        value: totalGenerations.toString(),
+        subtitle: `${recentGenerations} this month`,
+        trend: recentGenerations > 0 ? 20 : 0
       },
       aiStatus: {
         value: isAiConfigured ? 'Active' : 'Not Configured',
@@ -198,10 +255,145 @@ app.get('/api/dashboard/enhanced-stats', async (req, res) => {
       syncStatus: { value: '100%', subtitle: 'All systems synced' },
       categories: { value: '7', subtitle: 'Default categories' },
       processingJobs: { value: '0', subtitle: 'No jobs running' },
+      aiGenerations: { value: '0', subtitle: 'No generations yet' },
       aiStatus: { value: 'Unknown', subtitle: 'Check configuration' }
     });
   }
 });
+
+// Cost tracking endpoint for AI usage monitoring
+app.get('/api/ai-usage/costs', async (req, res) => {
+  try {
+    const { AiGenerationHistory, ConversationTurn } = require('./models');
+    const { Op } = require('sequelize');
+    
+    // Get usage for the last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    // Generation costs
+    const generations = await AiGenerationHistory.findAll({
+      where: {
+        createdAt: { [Op.gte]: thirtyDaysAgo }
+      },
+      attributes: ['tokenUsage', 'templateId', 'createdAt']
+    });
+    
+    // Chat costs
+    const chatTurns = await ConversationTurn.findAll({
+      where: {
+        createdAt: { [Op.gte]: thirtyDaysAgo }
+      },
+      attributes: ['metadata', 'createdAt']
+    });
+    
+    // Calculate estimated costs (rough estimation)
+    let totalTokens = 0;
+    let generationTokens = 0;
+    let chatTokens = 0;
+    
+    generations.forEach(gen => {
+      const tokens = gen.tokenUsage?.total_tokens || 1000; // Estimate if missing
+      totalTokens += tokens;
+      generationTokens += tokens;
+    });
+    
+    chatTurns.forEach(turn => {
+      const tokens = turn.metadata?.tokenUsage?.total_tokens || 500; // Estimate if missing
+      totalTokens += tokens;
+      chatTokens += tokens;
+    });
+    
+    // Rough cost estimation (adjust based on your actual pricing)
+    const estimatedCost = (totalTokens / 1000) * 0.002; // $0.002 per 1K tokens estimate
+    
+    res.json({
+      success: true,
+      period: '30 days',
+      totalTokens,
+      estimatedCost: estimatedCost.toFixed(4),
+      breakdown: {
+        documentGeneration: {
+          tokens: generationTokens,
+          cost: ((generationTokens / 1000) * 0.002).toFixed(4),
+          requests: generations.length
+        },
+        chatInteractions: {
+          tokens: chatTokens,
+          cost: ((chatTokens / 1000) * 0.002).toFixed(4),
+          requests: chatTurns.length
+        }
+      },
+      dailyUsage: await getDailyUsageBreakdown(thirtyDaysAgo)
+    });
+    
+  } catch (error) {
+    console.error('Error fetching AI usage costs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch usage costs'
+    });
+  }
+});
+
+// Helper function for daily usage breakdown
+async function getDailyUsageBreakdown(startDate) {
+  try {
+    const { AiGenerationHistory, ConversationTurn } = require('./models');
+    const { Op, fn, col } = require('sequelize');
+    
+    // Get daily generation counts
+    const dailyGenerations = await AiGenerationHistory.findAll({
+      where: {
+        createdAt: { [Op.gte]: startDate }
+      },
+      attributes: [
+        [fn('DATE', col('createdAt')), 'date'],
+        [fn('COUNT', '*'), 'count']
+      ],
+      group: [fn('DATE', col('createdAt'))],
+      order: [[fn('DATE', col('createdAt')), 'ASC']]
+    });
+    
+    // Get daily chat counts
+    const dailyChats = await ConversationTurn.findAll({
+      where: {
+        createdAt: { [Op.gte]: startDate }
+      },
+      attributes: [
+        [fn('DATE', col('createdAt')), 'date'],
+        [fn('COUNT', '*'), 'count']
+      ],
+      group: [fn('DATE', col('createdAt'))],
+      order: [[fn('DATE', col('createdAt')), 'ASC']]
+    });
+    
+    // Combine the data
+    const dailyUsage = {};
+    
+    dailyGenerations.forEach(item => {
+      const date = item.dataValues.date;
+      if (!dailyUsage[date]) dailyUsage[date] = { generations: 0, chats: 0 };
+      dailyUsage[date].generations = parseInt(item.dataValues.count);
+    });
+    
+    dailyChats.forEach(item => {
+      const date = item.dataValues.date;
+      if (!dailyUsage[date]) dailyUsage[date] = { generations: 0, chats: 0 };
+      dailyUsage[date].chats = parseInt(item.dataValues.count);
+    });
+    
+    return Object.entries(dailyUsage).map(([date, usage]) => ({
+      date,
+      generations: usage.generations,
+      chats: usage.chats,
+      total: usage.generations + usage.chats
+    }));
+    
+  } catch (error) {
+    console.error('Error getting daily usage breakdown:', error);
+    return [];
+  }
+}
 
 // Initialize AI configuration from environment if needed
 async function initializeAiConfigurationFromEnv() {
@@ -292,4 +484,5 @@ app.listen(PORT, () => {
   console.log(`🗄️  Database location: ${path.join(__dirname, 'data/pulse_one.db')}`);
   console.log(`🌐 API Health Check: http://localhost:${PORT}/api/health`);
   console.log(`🤖 AI Configuration: ${process.env.FLUX_AI_API_KEY ? 'Available' : 'Not configured'}`);
+  console.log(`✨ Enhanced Features: AI Content Studio, Conversation Management, Legal Frameworks`);
 });
