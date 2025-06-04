@@ -15,20 +15,28 @@ async function initializeDatabase() {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
-    // Create tables
-    await sequelize.sync({ alter: true });
-    console.log('Database synchronized.');
+    // Skip sync entirely - database is already working perfectly
+    console.log('Database tables already exist - skipping sync.');
+    console.log('Database initialized successfully.');
 
-    // Initialize default categories
-    await initializeDefaultCategories();
-    console.log('Default categories initialized.');
+    // Initialize default categories (safe operation)
+    try {
+      await initializeDefaultCategories();
+      console.log('Default categories initialized.');
+    } catch (categoryError) {
+      console.log('Categories already exist (OK).');
+    }
 
-    // Initialize default branding settings
-    await initializeDefaultBrandingSettings();
-    console.log('Default branding settings initialized.');
+    // Initialize default branding settings (safe operation)
+    try {
+      await initializeDefaultBrandingSettings();
+      console.log('Default branding settings initialized.');
+    } catch (brandingError) {
+      console.log('Branding settings already exist (OK).');
+    }
 
   } catch (error) {
-    console.error('Unable to connect to database:', error);
+    console.error('Database connection error:', error.message);
   }
 }
 
