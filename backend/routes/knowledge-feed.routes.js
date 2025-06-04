@@ -263,15 +263,90 @@ async function processDocumentComplete(document, job) {
       processingStage: 'creating_chunks'
     });
 
-    const chunks = documentChunker.chunkDocument(
-      extractionResult.extractedText,
-      document.id,
-      document.originalName
-    );
+    console.log(`[Chunking] Starting chunking for document: ${document.originalName}`);
+    
+    let chunks = [];
+    try {
+      // Validate extracted text before chunking
+      if (!extractionResult.extractedText || extractionResult.extractedText.trim().length === 0) {
+        console.warn(`[Chunking] No extracted text available for ${document.originalName}`);
+        throw new Error('No text content available for chunking');
+      }
 
-    // Save chunks to database
-    if (chunks.length > 0) {
-      await DocumentChunk.bulkCreate(chunks);
+      console.log(`[Chunking] Text length: ${extractionResult.extractedText.length} characters`);
+      
+      // Create chunks using the document chunker
+      chunks = documentChunker.chunkDocument(
+        extractionResult.extractedText,
+        document.id,
+        document.originalName
+      );
+
+      console.log(`[Chunking] Generated ${chunks.length} chunks for ${document.originalName}`);
+
+      // Validate chunks before saving
+      const validChunks = chunks.filter(chunk => {
+        if (!chunk.content || chunk.content.trim().length < 10) {
+          console.warn(`[Chunking] Filtering out invalid chunk: too short`);
+          return false;
+        }
+        if (!chunk.documentId || chunk.wordCount < 1) {
+          console.warn(`[Chunking] Filtering out invalid chunk: missing data`);
+          return false;
+        }
+        return true;
+      });
+
+      console.log(`[Chunking] ${validChunks.length} valid chunks after filtering`);
+
+      // Save chunks to database with error handling
+      if (validChunks.length > 0) {
+        try {
+          await DocumentChunk.bulkCreate(validChunks);
+          console.log(`[Chunking] Successfully saved ${validChunks.length} chunks to database`);
+          
+          // Verify chunks were actually saved
+          const savedChunkCount = await DocumentChunk.count({
+            where: { documentId: document.id }
+          });
+          console.log(`[Chunking] Verification: ${savedChunkCount} chunks in database`);
+          
+          if (savedChunkCount === 0) {
+            throw new Error('Chunks were not saved to database');
+          }
+        } catch (chunkSaveError) {
+          console.error(`[Chunking] Failed to save chunks:`, chunkSaveError);
+          throw new Error(`Failed to save document chunks: ${chunkSaveError.message}`);
+        }
+      } else {
+        console.error(`[Chunking] No valid chunks generated for ${document.originalName}`);
+        throw new Error('No valid chunks could be generated from document content');
+      }
+
+    } catch (chunkingError) {
+      console.error(`[Chunking] Chunking failed for ${document.originalName}:`, chunkingError);
+      
+      // Don't fail the entire processing - create a fallback chunk
+      console.log(`[Chunking] Creating fallback chunk for ${document.originalName}`);
+      
+      const fallbackChunk = {
+        documentId: document.id,
+        chunkIndex: 0,
+        content: extractionResult.extractedText.substring(0, 2000) + '...',
+        wordCount: Math.min(documentChunker.countWords(extractionResult.extractedText), 300),
+        startPosition: 0,
+        endPosition: Math.min(extractionResult.extractedText.length, 2000)
+      };
+
+      try {
+        await DocumentChunk.create(fallbackChunk);
+        console.log(`[Chunking] Created fallback chunk for ${document.originalName}`);
+        chunks = [fallbackChunk];
+      } catch (fallbackError) {
+        console.error(`[Chunking] Failed to create fallback chunk:`, fallbackError);
+        // Continue processing without chunks - better than failing completely
+        chunks = [];
+      }
     }
 
     await job.update({ progress: 95 });
