@@ -27,8 +27,8 @@ api.interceptors.request.use(
 
 // Specialized API services for Pulse One
 const settingsApi = {
-  getAiConfiguration: () => api.get('/settings/ai-configuration'),
-  updateAiConfiguration: (data) => api.put('/settings/ai-configuration', data)
+  getAiConfiguration: () => api.get('/ai-configuration'),
+  updateAiConfiguration: (data) => api.put('/ai-configuration', data)
 };
 
 // Export all API services
