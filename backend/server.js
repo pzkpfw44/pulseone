@@ -1,4 +1,4 @@
-// backend/server.js - Enhanced with AI Content Studio and Conversation Management
+// backend/server.js - Enhanced with AI Content Studio, Company Library and Conversation Management
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -35,7 +35,10 @@ app.get('/api/health', (req, res) => {
       aiContentStudio: true,
       enhancedRag: true,
       conversationManagement: true,
-      legalFrameworks: true
+      legalFrameworks: true,
+      companyLibrary: true,
+      documentGeneration: true,
+      multiFormatExport: true
     }
   });
 });
@@ -112,6 +115,29 @@ try {
   });
 }
 
+// Company Library routes (NEW)
+try {
+  const companyLibraryRoutes = require('./routes/company-library.routes');
+  app.use('/api/company-library', companyLibraryRoutes);
+  console.log('✅ Company Library routes loaded');
+} catch (error) {
+  console.error('❌ Failed to load Company Library routes:', error.message);
+  
+  // Fallback endpoint
+  app.get('/api/company-library/overview', (req, res) => {
+    res.json({
+      success: false,
+      message: 'Company Library not yet implemented',
+      overview: {
+        totalDocuments: 0,
+        fedDocuments: 0,
+        generatedDocuments: 0,
+        totalCategories: 0
+      }
+    });
+  });
+}
+
 // AI Configuration routes
 try {
   const aiConfigurationRoutes = require('./routes/ai-configuration.routes');
@@ -141,6 +167,15 @@ try {
   console.log('✅ Branding Settings routes loaded');
 } catch (error) {
   console.error('❌ Failed to load Branding Settings routes:', error.message);
+}
+
+// Settings routes (general)
+try {
+  const settingsRoutes = require('./routes/settings.routes');
+  app.use('/api/settings', settingsRoutes);
+  console.log('✅ Settings routes loaded');
+} catch (error) {
+  console.error('❌ Failed to load Settings routes:', error.message);
 }
 
 // Conversation Management routes
@@ -395,6 +430,85 @@ async function getDailyUsageBreakdown(startDate) {
   }
 }
 
+// Company Library analytics endpoint (NEW)
+app.get('/api/company-library/analytics', async (req, res) => {
+  try {
+    const { Document, AiGenerationHistory } = require('./models');
+    const { Op, fn, col } = require('sequelize');
+    
+    const {
+      startDate,
+      endDate,
+      granularity = 'day'
+    } = req.query;
+
+    const dateFilter = {};
+    if (startDate) dateFilter[Op.gte] = new Date(startDate);
+    if (endDate) dateFilter[Op.lte] = new Date(endDate);
+
+    // Document upload trends
+    const uploadTrends = await Document.findAll({
+      where: dateFilter.Op ? { createdAt: dateFilter } : {},
+      attributes: [
+        [fn('DATE', col('createdAt')), 'date'],
+        [fn('COUNT', '*'), 'count']
+      ],
+      group: [fn('DATE', col('createdAt'))],
+      order: [['date', 'ASC']],
+      raw: true
+    });
+
+    // Document generation trends
+    const generationTrends = await AiGenerationHistory.findAll({
+      where: dateFilter.Op ? { createdAt: dateFilter } : {},
+      attributes: [
+        [fn('DATE', col('createdAt')), 'date'],
+        [fn('COUNT', '*'), 'count']
+      ],
+      group: [fn('DATE', col('createdAt'))],
+      order: [['date', 'ASC']],
+      raw: true
+    });
+
+    // Category distribution
+    const categoryDistribution = await Document.findAll({
+      attributes: [
+        'category',
+        [fn('COUNT', '*'), 'count']
+      ],
+      where: { status: 'processed' },
+      group: ['category'],
+      order: [[fn('COUNT', '*'), 'DESC']],
+      raw: true
+    });
+
+    res.json({
+      success: true,
+      analytics: {
+        uploadTrends: uploadTrends.map(trend => ({
+          date: trend.date,
+          uploads: parseInt(trend.count)
+        })),
+        generationTrends: generationTrends.map(trend => ({
+          date: trend.date,
+          generations: parseInt(trend.count)
+        })),
+        categoryDistribution: categoryDistribution.map(cat => ({
+          category: cat.category || 'uncategorized',
+          count: parseInt(cat.count)
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching library analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch library analytics'
+    });
+  }
+});
+
 // Initialize AI configuration from environment if needed
 async function initializeAiConfigurationFromEnv() {
   try {
@@ -484,5 +598,11 @@ app.listen(PORT, () => {
   console.log(`🗄️  Database location: ${path.join(__dirname, 'data/pulse_one.db')}`);
   console.log(`🌐 API Health Check: http://localhost:${PORT}/api/health`);
   console.log(`🤖 AI Configuration: ${process.env.FLUX_AI_API_KEY ? 'Available' : 'Not configured'}`);
-  console.log(`✨ Enhanced Features: AI Content Studio, Conversation Management, Legal Frameworks`);
+  console.log(`✨ Enhanced Features: AI Content Studio, Company Library, Conversation Management, Legal Frameworks`);
+  console.log(`📚 New Endpoints Available:`);
+  console.log(`   - Company Library: http://localhost:${PORT}/api/company-library/overview`);
+  console.log(`   - AI Content Studio: http://localhost:${PORT}/api/ai-content-studio/templates`);
+  console.log(`   - Document Generation: http://localhost:${PORT}/api/ai-content-studio/generate`);
+  console.log(`   - Enhanced Chat: http://localhost:${PORT}/api/chat/query`);
+  console.log(`   - Conversation Management: http://localhost:${PORT}/api/conversations`);
 });

@@ -1,14 +1,17 @@
-// backend/routes/ai-configuration.routes.js
+// backend/routes/ai-configuration.routes.js - Fixed Model Handling
 
 const express = require('express');
 const router = express.Router();
 const { SystemSetting } = require('../models');
+const fluxAiConfig = require('../config/flux-ai');
 const { 
   getStorageInfo, 
   getAccountBalance,
   getAvailableModels,
   listFluxAiFiles, 
-  deleteFluxAiFile 
+  deleteFluxAiFile,
+  getApiModelName,
+  getDisplayModelName
 } = require('../services/flux-ai.service');
 
 // Get AI configuration settings
@@ -19,10 +22,10 @@ router.get('/', async (req, res) => {
     });
 
     if (!aiConfig) {
-      // Return default configuration
+      // Return default configuration with a model that's available on Flux AI
       return res.json({
         fluxApiKey: '',
-        model: 'DeepSeek R1 Distill Qwen 32B',
+        model: 'Llama 3.1 8B Instruct', // Use actual Flux AI model name
         temperature: 0.7,
         maxTokens: 2000,
         enableSafetyFilters: true,
@@ -64,10 +67,14 @@ router.put('/', async (req, res) => {
 
     let currentConfig = aiConfig ? aiConfig.value : {};
 
+    // Convert display model name to API model name if needed
+    const modelToStore = model || currentConfig.model || 'Llama 3.1 8B Instruct';
+    console.log(`Model name for storage: ${modelToStore}`);
+
     // Update configuration (don't overwrite API key if it's masked)
     const updatedConfig = {
       ...currentConfig,
-      model: model || currentConfig.model || 'DeepSeek R1 Distill Qwen 32B',
+      model: modelToStore,
       temperature: temperature !== undefined ? temperature : (currentConfig.temperature || 0.7),
       maxTokens: maxTokens || currentConfig.maxTokens || 2000,
       enableSafetyFilters: enableSafetyFilters !== undefined ? enableSafetyFilters : (currentConfig.enableSafetyFilters !== false),
@@ -93,7 +100,11 @@ router.put('/', async (req, res) => {
       });
     }
 
-    // Return masked configuration
+    // Reload flux AI config with new settings
+    await fluxAiConfig.reloadSettings();
+    console.log('[AI Config] Settings updated and flux config reloaded');
+
+    // Return masked configuration for UI
     const responseConfig = { ...updatedConfig };
     if (responseConfig.fluxApiKey) {
       responseConfig.fluxApiKey = '••••••••';
@@ -144,19 +155,57 @@ router.get('/models', async (req, res) => {
     const result = await getAvailableModels();
     
     if (result.success) {
+      // Transform the models for the frontend with proper handling
+      const transformedModels = result.models.map(model => {
+        // Use the actual model identifier as the value, display name for showing
+        const modelId = model.id || model.model_name || model.nickname;
+        const displayName = model.displayName || model.nickname || modelId;
+        
+        return {
+          id: modelId,
+          model_name: modelId,
+          nickname: displayName,
+          displayName: displayName,
+          value: modelId // What gets saved to database
+        };
+      });
+
+      console.log(`[Models API] Returning ${transformedModels.length} models`);
+      console.log(`[Models API] Sample:`, transformedModels[0]);
+
       res.json({
-        data: result.models,
+        data: transformedModels,
         success: true
       });
     } else {
-      // Return default models if API call fails
+      // Return fallback models based on what we see in the logs
+      console.warn('API models fetch failed, using observed fallback models');
       res.json({
         data: [
-          { nickname: "DeepSeek R1 Distill Qwen 32B", model_name: "DeepSeek R1 Distill Qwen 32B" },
-          { nickname: "Llama 3.1", model_name: "Llama 3.1" },
-          { nickname: "Mistral", model_name: "Mistral" }
+          { 
+            id: "DeepSeek R1 Distill Qwen 32B",
+            model_name: "DeepSeek R1 Distill Qwen 32B", 
+            nickname: "DeepSeek R1 Distill Qwen 32B",
+            displayName: "DeepSeek R1 Distill Qwen 32B",
+            value: "DeepSeek R1 Distill Qwen 32B"
+          },
+          { 
+            id: "Llama 3.1 8B Instruct",
+            model_name: "Llama 3.1 8B Instruct", 
+            nickname: "Llama 3.1 8B Instruct",
+            displayName: "Llama 3.1 8B Instruct",
+            value: "Llama 3.1 8B Instruct"
+          },
+          { 
+            id: "II Medical 8B",
+            model_name: "II Medical 8B", 
+            nickname: "II Medical 8B",
+            displayName: "II Medical 8B",
+            value: "II Medical 8B"
+          }
         ],
-        success: true
+        success: true,
+        fallback: true
       });
     }
   } catch (error) {
@@ -276,31 +325,14 @@ router.post('/cleanup', async (req, res) => {
 // Test AI connection
 router.post('/test', async (req, res) => {
   try {
-    const { getAccountBalance, getAvailableModels } = require('../services/flux-ai.service');
+    const { testApiConnection } = require('../services/flux-ai.service');
     
-    // Test both balance and models endpoints
-    const [balanceResult, modelsResult] = await Promise.allSettled([
-      getAccountBalance(),
-      getAvailableModels()
-    ]);
-
-    const response = {
-      balance: {
-        success: balanceResult.status === 'fulfilled' && balanceResult.value.success,
-        data: balanceResult.status === 'fulfilled' ? balanceResult.value : { error: balanceResult.reason?.message }
-      },
-      models: {
-        success: modelsResult.status === 'fulfilled' && modelsResult.value.success,
-        data: modelsResult.status === 'fulfilled' ? modelsResult.value : { error: modelsResult.reason?.message }
-      }
-    };
-
-    const overallSuccess = response.balance.success || response.models.success;
+    const result = await testApiConnection();
 
     res.json({
-      success: overallSuccess,
-      message: overallSuccess ? 'AI connection test successful' : 'AI connection test failed',
-      details: response
+      success: result.success,
+      message: result.message || (result.success ? 'AI connection test successful' : 'AI connection test failed'),
+      details: result.details || result.error
     });
 
   } catch (error) {

@@ -808,4 +808,103 @@ router.get('/reprocess-candidates', async (req, res) => {
   }
 });
 
+// Download document
+router.get('/download/:documentId', async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    
+    const document = await Document.findByPk(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Check if file exists on disk
+    const fs = require('fs').promises;
+    try {
+      await fs.access(document.filePath);
+    } catch (error) {
+      return res.status(404).json({ 
+        error: 'Document file not found on disk',
+        details: 'The file may have been moved or deleted'
+      });
+    }
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+    res.setHeader('Content-Length', document.size);
+
+    // Stream the file
+    const fileStream = require('fs').createReadStream(document.filePath);
+    fileStream.on('error', (error) => {
+      console.error('Error streaming file:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to download file' });
+      }
+    });
+
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ 
+      error: 'Failed to download document',
+      details: error.message 
+    });
+  }
+});
+
+// Get document content for preview (text extraction)
+router.get('/preview/:documentId', async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const { maxChunks = 3 } = req.query;
+    
+    const document = await Document.findByPk(documentId, {
+      include: [{
+        model: DocumentChunk,
+        as: 'chunks',
+        limit: parseInt(maxChunks),
+        order: [['chunkIndex', 'ASC']],
+        attributes: ['chunkIndex', 'content', 'wordCount']
+      }]
+    });
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Combine chunks to create preview content
+    const previewContent = document.chunks
+      .map(chunk => chunk.content)
+      .join('\n\n');
+
+    res.json({
+      success: true,
+      preview: {
+        id: document.id,
+        filename: document.originalName,
+        content: previewContent,
+        wordCount: document.metadata?.wordCount || 0,
+        chunkCount: document.chunks.length,
+        totalChunks: await DocumentChunk.count({ where: { documentId } })
+      }
+    });
+
+  } catch (error) {
+    console.error('Preview error:', error);
+    res.status(500).json({ 
+      error: 'Failed to get document preview',
+      details: error.message 
+    });
+  }
+});
+
+// Export this to be added to the existing knowledge-feed.routes.js
+module.exports = {
+  downloadRoute: router.get.bind(router),
+  previewRoute: router.get.bind(router)
+};
+
 module.exports = router;

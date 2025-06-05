@@ -1,4 +1,4 @@
-// frontend/src/pages/AiConfiguration.jsx - Fixed Test Connection Logic
+// frontend/src/pages/AiConfiguration.jsx - Fixed Model Selection
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -31,7 +31,7 @@ const AiConfiguration = () => {
   const [refreshingBalance, setRefreshingBalance] = useState(false);
   const [lastEnteredKey, setLastEnteredKey] = useState('');
   
-  // NEW: Track if we have a valid API key stored
+  // Track if we have a valid API key stored
   const [hasStoredApiKey, setHasStoredApiKey] = useState(false);
   
   // Storage Management State
@@ -53,14 +53,19 @@ const AiConfiguration = () => {
       if (configResponse.data) {
         const config = configResponse.data;
         setApiKey(config.fluxApiKey || '');
-        setSelectedModel(config.model || 'DeepSeek R1 Distill Qwen 32B');
+        
+        // Handle model name - could be API name or display name  
+        const configModel = config.model || 'Llama 3.1 8B Instruct';
+        setSelectedModel(configModel);
+        console.log('Loaded model from config:', configModel);
+        
         setTemperature(config.temperature || 0.7);
         setMaxTokens(config.maxTokens || 2000);
         setEnableSafetyFilters(config.enableSafetyFilters !== false);
         setEnableBiasDetection(config.enableBiasDetection !== false);
         setEnableContentModeration(config.enableContentModeration !== false);
         
-        // NEW: Track if we have a stored API key
+        // Track if we have a stored API key
         setHasStoredApiKey(!!(config.fluxApiKey && config.fluxApiKey !== ''));
       }
 
@@ -84,14 +89,42 @@ const AiConfiguration = () => {
     try {
       const modelsResponse = await api.get('/ai-configuration/models');
       if (modelsResponse.data && modelsResponse.data.data) {
-        setAvailableModels(modelsResponse.data.data);
+        const models = modelsResponse.data.data;
+        setAvailableModels(models);
+        
+        // Log available models for debugging
+        console.log('Available models:', models.map(m => ({ 
+          id: m.id, 
+          name: m.nickname, 
+          value: m.value || m.id 
+        })));
+        
+        // If using fallback models, show a warning
+        if (modelsResponse.data.fallback) {
+          console.warn('Using fallback model list - API may not be accessible');
+        }
       }
     } catch (modelError) {
-      console.warn('Could not fetch models, using default list:', modelError);
+      console.warn('Could not fetch models, using hardcoded fallback list:', modelError);
       setAvailableModels([
-        { nickname: "DeepSeek R1 Distill Qwen 32B", model_name: "DeepSeek R1 Distill Qwen 32B" },
-        { nickname: "Llama 3.1", model_name: "Llama 3.1" },
-        { nickname: "Mistral", model_name: "Mistral" }
+        { 
+          id: "DeepSeek R1 Distill Qwen 32B",
+          model_name: "DeepSeek R1 Distill Qwen 32B", 
+          nickname: "DeepSeek R1 Distill Qwen 32B",
+          value: "DeepSeek R1 Distill Qwen 32B"
+        },
+        { 
+          id: "Llama 3.1 8B Instruct",
+          model_name: "Llama 3.1 8B Instruct", 
+          nickname: "Llama 3.1 8B Instruct",
+          value: "Llama 3.1 8B Instruct"
+        },
+        { 
+          id: "II Medical 8B",
+          model_name: "II Medical 8B", 
+          nickname: "II Medical 8B",
+          value: "II Medical 8B"
+        }
       ]);
     }
   };
@@ -165,9 +198,11 @@ const AiConfiguration = () => {
     setError(null);
     
     try {
+      console.log('Saving model:', selectedModel);
+      
       const data = {
         fluxApiKey: apiKey === '••••••••' ? undefined : apiKey,
-        model: selectedModel,
+        model: selectedModel, // This should be the API model name (id)
         temperature: temperature,
         maxTokens: maxTokens,
         enableSafetyFilters: enableSafetyFilters,
@@ -177,11 +212,11 @@ const AiConfiguration = () => {
 
       const response = await api.put('/ai-configuration', data);
       if (response.data.success) {
-        setSuccess('AI configuration saved successfully');
+        setSuccess('AI configuration saved successfully. The system will use the selected model for document processing.');
         if (apiKey !== '••••••••') {
           setLastEnteredKey(apiKey);
           setApiKey('••••••••');
-          setHasStoredApiKey(true); // NEW: Mark that we have a stored key
+          setHasStoredApiKey(true);
         }
       }
     } catch (err) {
@@ -200,7 +235,14 @@ const AiConfiguration = () => {
     try {
       const response = await api.post('/ai-configuration/test');
       if (response.data.success) {
-        setSuccess('AI connection test successful! Configuration is working properly.');
+        const details = response.data.details;
+        let message = 'AI connection test successful! Configuration is working properly.';
+        
+        if (details && details.testedModel) {
+          message += ` Tested with model: ${details.testedModel}`;
+        }
+        
+        setSuccess(message);
       } else {
         setError(`Connection test failed: ${response.data.message}`);
       }
@@ -223,7 +265,7 @@ const AiConfiguration = () => {
   const handleClearApiKey = () => {
     setApiKey('');
     setLastEnteredKey('');
-    setHasStoredApiKey(false); // NEW: Clear the stored key flag
+    setHasStoredApiKey(false);
   };
 
   const formatBytes = (bytes, decimals = 2) => {
@@ -235,7 +277,7 @@ const AiConfiguration = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
 
-  // NEW: Check if we can test the connection
+  // Check if we can test the connection
   const canTestConnection = () => {
     return hasStoredApiKey || (apiKey && apiKey !== '' && apiKey !== '••••••••');
   };
@@ -343,23 +385,31 @@ const AiConfiguration = () => {
                 <select
                   id="aiModel"
                   value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Model selected:', e.target.value);
+                    setSelectedModel(e.target.value);
+                  }}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select AI model</option>
                   {availableModels.map((model) => (
-                    <option key={model.model_name} value={model.model_name}>
-                      {model.nickname} ({model.model_name})
+                    <option key={model.id || model.model_name} value={model.value || model.id || model.model_name}>
+                      {model.nickname || model.displayName || model.id || model.model_name}
                     </option>
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  Choose the AI model for document categorization and analysis.
+                  Choose the AI model for document categorization and analysis. Current: {selectedModel}
                 </p>
+                {availableModels.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    {availableModels.length} models available
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Test Connection - FIXED */}
+            {/* Test Connection */}
             <div className="mt-4 pt-4 border-t border-gray-100">
               <button
                 onClick={handleTestConnection}

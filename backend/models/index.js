@@ -521,6 +521,18 @@ const AiGenerationHistory = sequelize.define('AiGenerationHistory', {
     type: DataTypes.JSON,
     allowNull: false
   },
+    templateSpecificData: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {},
+    comment: 'Template-specific form data (jobDescription, companyPolicy, etc.)'
+  },
+  consultantFeatures: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {},
+    comment: 'Consultant-related metadata including confidence scores'
+  },
   generatedContent: {
     type: DataTypes.TEXT,
     allowNull: false
@@ -574,8 +586,51 @@ async function initializeDatabase() {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
-    // Create tables with enhanced models
-    await sequelize.sync({ alter: true });
+    // Check if this is a fresh database (no tables exist)
+    const [tables] = await sequelize.query(`
+      SELECT name FROM sqlite_master 
+      WHERE type='table' AND name NOT LIKE 'sqlite_%';
+    `);
+    
+    const isFreshDatabase = tables.length === 0;
+    
+    if (isFreshDatabase) {
+      console.log('🆕 Fresh database detected, creating schema...');
+      // For fresh database, use force sync
+      await sequelize.sync({ force: true });
+    } else {
+      console.log('📋 Existing database detected, checking schema...');
+      
+      // For existing database, be more careful
+      try {
+        // Try a gentle sync first
+        await sequelize.sync({ alter: false });
+        console.log('✅ Database schema is up to date');
+      } catch (syncError) {
+        console.log('⚠️  Schema needs updates, applying changes carefully...');
+        
+        // Disable foreign keys for SQLite
+        if (sequelize.getDialect() === 'sqlite') {
+          await sequelize.query('PRAGMA foreign_keys = OFF;');
+        }
+        
+        try {
+          // Try alter sync
+          await sequelize.sync({ alter: true });
+          console.log('✅ Database schema updated successfully');
+        } catch (alterError) {
+          console.error('❌ Schema alteration failed:', alterError.message);
+          console.log('💡 Consider running the cleanup script: node scripts/cleanup-database.js');
+          throw alterError;
+        } finally {
+          // Re-enable foreign keys
+          if (sequelize.getDialect() === 'sqlite') {
+            await sequelize.query('PRAGMA foreign_keys = ON;');
+          }
+        }
+      }
+    }
+    
     console.log('Database synchronized with enhanced models.');
 
     // Initialize default categories
@@ -588,6 +643,7 @@ async function initializeDatabase() {
 
   } catch (error) {
     console.error('Unable to connect to database:', error);
+    console.log('💡 If you continue to see errors, try running: node scripts/cleanup-database.js');
   }
 }
 

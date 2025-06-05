@@ -456,3 +456,407 @@ input[type="range"]:disabled::-moz-range-thumb {
     -webkit-print-color-adjust: exact;
   }
 }
+
+/* Enhanced form controls for template-specific forms */
+.pulse-one-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-charcoal-500 focus:border-charcoal-500 sm:text-sm;
+}
+
+.pulse-one-select {
+  @apply w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-charcoal-500 focus:border-charcoal-500 sm:text-sm;
+}
+
+.pulse-one-textarea {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-charcoal-500 focus:border-charcoal-500 sm:text-sm resize-y;
+}
+
+/* Button styles for consistency */
+.btn-brand-primary {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-charcoal-600 hover:bg-charcoal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+.btn-brand-outline {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-charcoal-300 text-sm font-medium rounded-md shadow-sm text-charcoal-700 bg-white hover:bg-charcoal-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+/* Template category headers */
+.category-header {
+  @apply flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-4;
+}
+
+.category-header .icon {
+  @apply w-5 h-5;
+}
+
+.category-header .subtitle {
+  @apply ml-2 text-sm font-normal text-gray-500;
+}
+
+/* Difficulty badges */
+.difficulty-badge {
+  @apply px-2 py-1 text-xs font-medium rounded-full;
+}
+
+.difficulty-low {
+  @apply bg-green-100 text-green-800;
+}
+
+.difficulty-medium {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.difficulty-high {
+  @apply bg-red-100 text-red-800;
+}
+
+.difficulty-variable {
+  @apply bg-blue-100 text-blue-800;
+}
+
+/* Template card enhancements */
+.template-card {
+  @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer;
+}
+
+.template-card:hover {
+  @apply shadow-lg transform translate-y-[-1px];
+}
+
+.template-card-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.template-card-icon {
+  @apply p-2 bg-charcoal-100 rounded-lg;
+}
+
+.template-card-badges {
+  @apply flex items-center space-x-2;
+}
+
+.template-card-category {
+  @apply text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded;
+}
+
+/* Form section styling */
+.form-section {
+  @apply bg-white rounded-lg shadow-sm border;
+}
+
+.form-section-header {
+  @apply flex items-center space-x-3 p-6 border-b border-gray-200;
+}
+
+.form-section-icon {
+  @apply p-2 rounded-lg;
+}
+
+.form-section-title {
+  @apply text-lg font-medium text-gray-900;
+}
+
+.form-section-subtitle {
+  @apply text-sm text-gray-500;
+}
+
+.form-section-content {
+  @apply p-6 space-y-4;
+}
+
+/* Validation and status indicators */
+.validation-error {
+  @apply text-sm text-amber-600 flex items-center;
+}
+
+.validation-error-icon {
+  @apply w-4 h-4 mr-2;
+}
+
+.validation-error-list {
+  @apply text-xs space-y-1 ml-6;
+}
+
+.status-success {
+  @apply bg-green-50 border border-green-200 rounded-lg p-6;
+}
+
+.status-error {
+  @apply bg-red-50 border border-red-200 rounded-lg p-6;
+}
+
+.status-loading {
+  @apply bg-blue-50 border border-blue-200 rounded-lg p-6;
+}
+
+.status-warning {
+  @apply bg-amber-50 border border-amber-200 rounded-lg p-4;
+}
+
+/* Token usage display */
+.token-usage {
+  @apply mt-3 p-3 bg-white rounded border;
+}
+
+.token-usage-header {
+  @apply flex items-center justify-between text-xs text-gray-600;
+}
+
+.token-usage-stats {
+  @apply flex items-center space-x-3;
+}
+
+.token-usage-time {
+  @apply text-xs text-gray-500 mt-1;
+}
+
+/* Confidence score styling */
+.confidence-score {
+  @apply inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded;
+}
+
+.confidence-high {
+  @apply bg-green-100 text-green-800;
+}
+
+.confidence-medium {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.confidence-low {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Mode selection for functional booklet */
+.mode-selection {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+.mode-option {
+  @apply flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.mode-option.selected {
+  @apply border-charcoal-500 bg-charcoal-50;
+}
+
+.mode-option-radio {
+  @apply mt-1 border-gray-300 text-charcoal-600 focus:ring-charcoal-500;
+}
+
+.mode-option-content {
+  @apply ml-3;
+}
+
+.mode-option-title {
+  @apply font-medium text-gray-900 flex items-center;
+}
+
+.mode-option-description {
+  @apply text-sm text-gray-600 mt-1;
+}
+
+.mode-option-notice {
+  @apply text-xs mt-2;
+}
+
+.mode-option-notice.warning {
+  @apply text-amber-600 flex items-center;
+}
+
+.mode-option-notice.success {
+  @apply text-green-600;
+}
+
+/* Skills selection grid */
+.skills-grid {
+  @apply grid grid-cols-2 md:grid-cols-3 gap-2;
+}
+
+.skill-option {
+  @apply flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.skill-option.selected {
+  @apply bg-charcoal-50 border-charcoal-300;
+}
+
+.skill-checkbox {
+  @apply rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500;
+}
+
+/* Enhanced target audience grid */
+.audience-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-3;
+}
+
+.audience-option {
+  @apply flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.audience-option.selected {
+  @apply bg-charcoal-50 border-charcoal-300;
+}
+
+.audience-checkbox {
+  @apply rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500;
+}
+
+.audience-icon {
+  @apply w-4 h-4 ml-3 mr-2 text-gray-500;
+}
+
+.audience-label {
+  @apply text-sm font-medium text-gray-700;
+}
+
+/* Length selection options */
+.length-options {
+  @apply space-y-2;
+}
+
+.length-option {
+  @apply flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors;
+}
+
+.length-option.selected {
+  @apply bg-charcoal-50 border-charcoal-300;
+}
+
+.length-radio {
+  @apply mt-1 border-gray-300 text-charcoal-600 focus:ring-charcoal-500;
+}
+
+.length-content {
+  @apply ml-3;
+}
+
+.length-title {
+  @apply text-sm font-medium text-gray-700;
+}
+
+.length-description {
+  @apply text-xs text-gray-500;
+}
+
+/* Enhanced feature highlight section */
+.feature-highlight {
+  @apply bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6;
+}
+
+.feature-highlight-icon {
+  @apply p-3 bg-white rounded-lg shadow-sm;
+}
+
+.feature-highlight-title {
+  @apply text-lg font-semibold text-purple-900 mb-2;
+}
+
+.feature-highlight-description {
+  @apply text-purple-700 mb-3;
+}
+
+.feature-highlight-items {
+  @apply flex items-center space-x-4 text-sm text-purple-600;
+}
+
+.feature-highlight-item {
+  @apply flex items-center;
+}
+
+.feature-highlight-item-icon {
+  @apply w-4 h-4 mr-1;
+}
+
+/* Tab navigation enhancements */
+.tab-nav {
+  @apply flex space-x-8 px-6;
+}
+
+.tab-button {
+  @apply py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors duration-200;
+}
+
+.tab-button.active {
+  @apply border-charcoal-500 text-charcoal-600;
+}
+
+.tab-button.inactive {
+  @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+}
+
+.tab-icon {
+  @apply w-4 h-4;
+}
+
+/* Required field indicator */
+.required-indicator {
+  @apply text-red-500 ml-1;
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+  .template-grid {
+    @apply grid-cols-1;
+  }
+  
+  .form-grid {
+    @apply grid-cols-1;
+  }
+  
+  .feature-highlight-items {
+    @apply flex-col items-start space-x-0 space-y-2;
+  }
+  
+  .mode-selection {
+    @apply grid-cols-1;
+  }
+}
+
+/* Animation utilities */
+.fade-in {
+  @apply opacity-0 animate-pulse;
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  @apply transform translate-y-2 opacity-0;
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Loading states */
+.loading-spinner {
+  @apply animate-spin;
+}
+
+.loading-pulse {
+  @apply animate-pulse;
+}
+
+/* Focus states for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-500;
+}
+
+/* Print styles for generated documents */
+@media print {
+  .no-print {
+    @apply hidden;
+  }
+  
+  .print-break {
+    page-break-before: always;
+  }
+}
