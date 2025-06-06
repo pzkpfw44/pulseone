@@ -178,7 +178,6 @@ async function startProcessingPipeline(document) {
 }
 
 // Complete document processing
-// Complete document processing
 async function processDocumentComplete(document, job) {
   try {
     // Step 1: Extract text content

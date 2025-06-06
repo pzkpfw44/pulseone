@@ -42,14 +42,14 @@ class DocumentChunker {
   
   if (sections.length > 1) {
     // Process each section
-    sections.forEach((section, index) => {
-      const sectionChunks = this.chunkSection(section.content, documentId, index * 1000);
+    sections.forEach((section) => {
+      const sectionChunks = this.chunkSection(section.content, documentId, section.start);
       chunks.push(...sectionChunks);
     });
   } else {
     // Fall back to paragraph-based chunking
     console.log(`[Chunking] Using paragraph-based chunking`);
-    const paragraphChunks = this.chunkByParagraphs(cleanText, documentId);
+    const paragraphChunks = this.chunkByParagraphs(cleanText, documentId, 0);
     chunks.push(...paragraphChunks);
   }
 
@@ -105,21 +105,22 @@ identifyDocumentSections(text) {
     if (content.length > 50) { // Only include substantial sections
       sections.push({
         header: matches[i].header,
-        content: content
+        content: content,
+        start
       });
     }
   }
-  
-  return sections.length > 0 ? sections : [{ content: text, header: 'Document Content' }];
+
+  return sections.length > 0 ? sections : [{ content: text, header: 'Document Content', start: 0 }];
 }
 
 // Enhanced paragraph-based chunking
-chunkByParagraphs(text, documentId) {
+chunkByParagraphs(text, documentId, baseOffset = 0) {
   const chunks = [];
   const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-  
+
   let currentChunk = '';
-  let currentStart = 0;
+  let currentStart = baseOffset;
   let chunkIndex = 0;
   
   for (let i = 0; i < paragraphs.length; i++) {
@@ -139,11 +140,13 @@ chunkByParagraphs(text, documentId) {
         currentStart + currentChunk.length,
         documentId
       ));
-      
+
       // Start new chunk with overlap
       const overlapText = this.getOverlapText(currentChunk, this.chunkOverlap);
+      const prevLength = currentChunk.length;
+      const overlapLength = overlapText ? overlapText.length : 0;
+      currentStart = currentStart + prevLength - overlapLength;
       currentChunk = overlapText ? overlapText + '\n\n' + paragraph : paragraph;
-      currentStart = currentStart + currentChunk.length - (overlapText?.length || 0);
       chunkIndex++;
     } else {
       currentChunk = testChunk;
@@ -171,7 +174,7 @@ chunkSection(sectionContent, documentId, baseOffset) {
   }
   
   // Use paragraph-based chunking for the section
-  return this.chunkByParagraphs(sectionContent, documentId);
+  return this.chunkByParagraphs(sectionContent, documentId, baseOffset);
 }
 
 // Post-process chunks to improve quality
