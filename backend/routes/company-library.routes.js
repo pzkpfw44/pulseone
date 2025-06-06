@@ -33,21 +33,33 @@ router.get('/overview', async (req, res) => {
     // Get total storage used
     const totalSize = await Document.sum('size') || 0;
 
-    // Get categories with usage stats
-    const categories = await Category.findAll({
+    // Get categories with usage stats - FIXED: No JOIN, calculate separately
+    const allCategories = await Category.findAll({
       where: { isActive: true },
-      include: [{
-        model: Document,
-        attributes: [],
-        required: false
-      }],
-      attributes: [
-        'id', 'name', 'description', 'type', 'aiSuggested',
-        [Document.sequelize.fn('COUNT', Document.sequelize.col('Documents.id')), 'usageCount']
-      ],
-      group: ['Category.id'],
+      attributes: ['id', 'name', 'description', 'type', 'aiSuggested'],
       order: [['name', 'ASC']]
     });
+
+    // Calculate usage count for each category separately
+    const categoriesWithUsage = await Promise.all(
+      allCategories.map(async (category) => {
+        const usageCount = await Document.count({
+          where: { 
+            category: category.name,
+            status: 'processed'
+          }
+        });
+        
+        return {
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          type: category.type,
+          aiSuggested: category.aiSuggested,
+          usageCount: usageCount
+        };
+      })
+    );
 
     // Get recent activity
     const recentDocuments = await Document.findAll({
@@ -74,14 +86,7 @@ router.get('/overview', async (req, res) => {
         totalStorageBytes: totalSize,
         totalStorageMB: (totalSize / (1024 * 1024)).toFixed(2)
       },
-      categories: categories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        description: cat.description,
-        type: cat.type,
-        aiSuggested: cat.aiSuggested,
-        usageCount: parseInt(cat.dataValues.usageCount) || 0
-      })),
+      categories: categoriesWithUsage,
       recentActivity: {
         documents: recentDocuments,
         generated: recentGenerated

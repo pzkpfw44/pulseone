@@ -62,44 +62,50 @@ const CompanyLibrary = () => {
   const loadLibraryData = async () => {
     setLoading(true);
     try {
-      // Load fed documents from Knowledge Feed
-      const fedDocsResponse = await api.get('/knowledge-feed/recent?limit=100');
-      setFedDocuments(fedDocsResponse.data || []);
+      // Load overview/stats first
+      const overviewResponse = await api.get('/company-library/overview');
+      const overview = overviewResponse.data;
+      
+      // Load fed documents from company library
+      const fedDocsResponse = await api.get('/company-library/fed-documents?limit=100');
+      setFedDocuments(fedDocsResponse.data?.documents || []);
 
-      // Load generated documents
-      const generatedDocsResponse = await api.get('/ai-content-studio/history');
-      setGeneratedDocuments(generatedDocsResponse.data?.history || []);
+      // Load generated documents - FIXED ENDPOINT
+      const generatedDocsResponse = await api.get('/company-library/generated-documents?limit=100');
+      setGeneratedDocuments(generatedDocsResponse.data?.documents || []);
 
-      // Load categories and tags
-      const categoriesResponse = await api.get('/knowledge-feed/categories');
-      setCategories(categoriesResponse.data?.categories || []);
+      // Load external connections
+      const externalResponse = await api.get('/company-library/external-connections');
+      setExternalConnections(externalResponse.data?.connections || []);
 
-      // Extract unique tags
+      // Use overview data for categories and stats
+      setCategories(overview?.categories || []);
+
+      // Extract unique tags from fed documents
       const allTags = new Set();
-      fedDocuments.forEach(doc => {
+      (fedDocsResponse.data?.documents || []).forEach(doc => {
         doc.tags?.forEach(tag => allTags.add(tag));
       });
       setTags(Array.from(allTags));
 
-      // Load external connections (placeholder for now)
-      setExternalConnections([
-        { id: 1, name: 'SharePoint', type: 'Microsoft', status: 'connected', documents: 45 },
-        { id: 2, name: 'Google Drive', type: 'Google', status: 'disconnected', documents: 0 },
-        { id: 3, name: 'Confluence', type: 'Atlassian', status: 'connected', documents: 23 }
-      ]);
-
-      // Calculate stats
+      // Set stats from overview
       setStats({
-        totalDocuments: fedDocuments.length + generatedDocuments.length,
-        totalCategories: categories.length,
+        totalDocuments: overview?.overview?.totalDocuments || 0,
+        totalCategories: overview?.overview?.totalCategories || 0,
         totalTags: allTags.size,
-        recentUploads: fedDocuments.filter(doc => 
-          new Date(doc.uploadedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        ).length
+        recentUploads: overview?.overview?.recentUploads || 0
       });
 
     } catch (error) {
       console.error('Error loading library data:', error);
+      
+      // Fallback to empty arrays if API calls fail
+      setFedDocuments([]);
+      setGeneratedDocuments([]);
+      setExternalConnections([]);
+      setCategories([]);
+      setTags([]);
+      setStats({});
     } finally {
       setLoading(false);
     }
@@ -219,102 +225,130 @@ const CompanyLibrary = () => {
     }
   };
 
-  const DocumentCard = ({ document, type }) => (
-    <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gray-100 rounded-lg">
-            <FileText className="w-5 h-5 text-gray-600" />
+  const DocumentCard = ({ document, type }) => {
+    // Handle different field names between fed documents and generated documents
+    const getDocumentTitle = () => {
+      if (type === 'generated') {
+        return document.title || document.templateTitle || 'Untitled Document';
+      }
+      return document.filename || document.originalName || 'Untitled Document';
+    };
+
+    const getDocumentDate = () => {
+      return document.uploadedAt || document.createdAt || new Date();
+    };
+
+    const getDocumentSize = () => {
+      if (type === 'generated') {
+        return document.wordCount ? `${document.wordCount} words` : '';
+      }
+      return document.size ? `${(document.size / 1024).toFixed(1)} KB` : '';
+    };
+
+    return (
+      <div className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <FileText className="w-5 h-5 text-gray-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-medium text-gray-900 truncate">
+                {getDocumentTitle()}
+              </h3>
+              <p className="text-xs text-gray-500">
+                {document.category && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                    {document.category.replace('_', ' ')}
+                  </span>
+                )}
+                {new Date(getDocumentDate()).toLocaleDateString()}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-medium text-gray-900 truncate">
-              {document.filename || document.title}
-            </h3>
-            <p className="text-xs text-gray-500">
-              {document.category && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-2">
-                  {document.category.replace('_', ' ')}
-                </span>
-              )}
-              {new Date(document.uploadedAt || document.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-1">
-          <button
-            onClick={() => handleDocumentAction('preview', document)}
-            className="p-1 text-gray-400 hover:text-gray-600"
-            title="Preview"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => handleDocumentAction('download', document)}
-            className="p-1 text-gray-400 hover:text-gray-600"
-            title="Download"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-          {type === 'generated' && (
+          <div className="flex items-center space-x-1">
             <button
-              onClick={() => handleDocumentAction('add-to-knowledge', document)}
-              className="p-1 text-blue-400 hover:text-blue-600"
-              title="Add to Knowledge Base"
+              onClick={() => handleDocumentAction('preview', document)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+              title="Preview"
             >
-              <Plus className="w-4 h-4" />
+              <Eye className="w-4 h-4" />
             </button>
-          )}
-          <button
-            onClick={() => handleDocumentAction('edit', document)}
-            className="p-1 text-gray-400 hover:text-gray-600"
-            title="Edit"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {document.summary && (
-        <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-          {document.summary}
-        </p>
-      )}
-
-      {document.tags && document.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {document.tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+            <button
+              onClick={() => handleDocumentAction('download', document)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+              title="Download"
             >
-              {tag}
+              <Download className="w-4 h-4" />
+            </button>
+            {type === 'generated' && (
+              <button
+                onClick={() => handleDocumentAction('add-to-knowledge', document)}
+                className="p-1 text-blue-400 hover:text-blue-600"
+                title="Add to Knowledge Base"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={() => handleDocumentAction('edit', document)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+              title="Edit"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {document.summary && (
+          <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+            {document.summary}
+          </p>
+        )}
+
+        {document.tags && document.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {document.tags.slice(0, 3).map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+              >
+                {tag}
+              </span>
+            ))}
+            {document.tags.length > 3 && (
+              <span className="text-xs text-gray-500">
+                +{document.tags.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>
+            {getDocumentSize()}
+            {type === 'generated' && document.legalFramework && (
+              <span> • {document.legalFramework}</span>
+            )}
+          </span>
+          {type === 'fed' && document.processingMethod && (
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+              document.processingMethod === 'ai-enhanced' 
+                ? 'bg-purple-100 text-purple-700' 
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {document.processingMethod === 'ai-enhanced' ? '🤖 AI' : '🔍 Pattern'}
             </span>
-          ))}
-          {document.tags.length > 3 && (
-            <span className="text-xs text-gray-500">
-              +{document.tags.length - 3} more
+          )}
+          {type === 'generated' && (
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+              🤖 Generated
             </span>
           )}
         </div>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>
-          {document.size ? `${(document.size / 1024).toFixed(1)} KB` : ''}
-          {document.wordCount ? ` • ${document.wordCount} words` : ''}
-        </span>
-        {document.processingMethod && (
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-            document.processingMethod === 'ai-enhanced' 
-              ? 'bg-purple-100 text-purple-700' 
-              : 'bg-blue-100 text-blue-700'
-          }`}>
-            {document.processingMethod === 'ai-enhanced' ? '🤖 AI' : '🔍 Pattern'}
-          </span>
-        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const ExternalConnectionCard = ({ connection }) => (
     <div className="bg-white rounded-lg shadow-sm border p-4">
