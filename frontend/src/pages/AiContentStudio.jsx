@@ -1,4 +1,4 @@
-// frontend/src/pages/AiContentStudio.jsx - Phase 1 Implementation
+// frontend/src/pages/AiContentStudio.jsx
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Users, TrendingUp, BookOpen, Settings, Briefcase,
@@ -6,7 +6,8 @@ import {
   Sparkles, Brain, Target, Lightbulb, Zap, Globe, Shield,
   Scale, Languages, FileCheck, MessageSquare, ArrowRight,
   Loader2, Info, AlertTriangle, X, Building, UserCheck,
-  HelpCircle, BarChart3, Coins, Activity
+  HelpCircle, BarChart3, Coins, Activity, ChevronDown,
+  ChevronUp, ThumbsUp, ThumbsDown, RefreshCw, Plus
 } from 'lucide-react';
 import api from '../services/api';
 import DocumentViewer from '../components/ui/DocumentViewer';
@@ -27,21 +28,25 @@ const AiContentStudio = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  // Phase 2: Document selection states
+  // Document selection states
   const [showDocumentSelector, setShowDocumentSelector] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [documentAnalysis, setDocumentAnalysis] = useState(null);
 
-  // Phase 3: Advanced features states
-  const [showAiSuggestions, setShowAiSuggestions] = useState(true);
+  // AI features states
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [userContext, setUserContext] = useState({
-    userId: 'system', // Would come from auth context
+    userId: 'system',
     preferences: null,
     history: []
   });
   const [performanceMetrics, setPerformanceMetrics] = useState(null);
-  const [optimizationInsights, setOptimizationInsights] = useState(null);
+
+  // Token estimation state
+  const [estimatedTokens, setEstimatedTokens] = useState({ input: 0, output: 0, total: 0, cost: 0 });
+
+  // Custom audience state
+  const [customTargetAudience, setCustomTargetAudience] = useState('');
 
   // Generation form state with template-specific structure
   const [generationForm, setGenerationForm] = useState({
@@ -63,7 +68,7 @@ const AiContentStudio = () => {
       expectedLength: 'medium',
       includeExplanation: true,
       tone: 'formal',
-      consultantConfidence: true // New: Show confidence percentages
+      consultantConfidence: true
     },
     companyInfo: {
       name: '',
@@ -93,14 +98,15 @@ const AiContentStudio = () => {
       auditRequirements: ''
     },
     functionalBooklet: {
-      mode: 'easy', // 'easy' or 'advanced'
+      mode: 'easy',
       organizationType: '',
       departmentCount: '',
       hierarchyLevels: '',
       decisionMaking: '',
       communicationFlow: '',
-      selectedDocuments: [] // For advanced mode
-    }
+      selectedDocuments: []
+    },
+    customTargetAudience: ''
   });
 
   const tabs = [
@@ -130,7 +136,7 @@ const AiContentStudio = () => {
     }
   ];
 
-  // Updated template definitions - Phase 1 restructuring
+  // Updated template definitions
   const hrDocTemplates = [
     // HARD HR ACTIVITIES
     {
@@ -212,6 +218,45 @@ const AiContentStudio = () => {
     'Strategic Thinking', 'Digital Literacy', 'Compliance Knowledge', 'Languages'
   ];
 
+  // Token estimation function
+  const estimateTokenUsage = (formData) => {
+    const charMultiplier = formData.output?.language === 'english' ? 0.25 : 0.33;
+    
+    let inputText = '';
+    inputText += formData.context?.reasons || '';
+    inputText += formData.context?.scope || '';
+    inputText += formData.context?.additionalInfo || '';
+    inputText += formData.companyPolicy?.legalRequirements || '';
+    inputText += formData.legalFramework?.specificLaws || '';
+    inputText += (formData.targetAudience || []).join(' ');
+    inputText += formData.customTargetAudience || '';
+    
+    const inputTokens = Math.round(inputText.length * charMultiplier) + 500;
+
+    const outputTokens = {
+      brief: 1200,
+      medium: 2500,
+      detailed: 4000,
+      comprehensive: 6500
+    }[formData.output?.expectedLength] || 2500;
+
+    const totalTokens = inputTokens + outputTokens;
+    const estimatedCost = (totalTokens / 1000) * 0.02;
+
+    return {
+      input: inputTokens,
+      output: outputTokens,
+      total: totalTokens,
+      cost: estimatedCost
+    };
+  };
+
+  // Update estimation when form changes
+  useEffect(() => {
+    const tokens = estimateTokenUsage(generationForm);
+    setEstimatedTokens(tokens);
+  }, [generationForm]);
+
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
     setGenerationForm(prev => ({
@@ -224,7 +269,6 @@ const AiContentStudio = () => {
   const handleDocumentsSelected = async (documents) => {
     setSelectedDocuments(documents);
     
-    // Analyze selected documents for generation insights
     if (documents.length > 0) {
       try {
         const response = await api.post('/ai-content-studio/analyze-documents', {
@@ -242,26 +286,21 @@ const AiContentStudio = () => {
       setDocumentAnalysis(null);
     }
 
-    // Phase 3: Update AI suggestions based on selection
     await updateAiSuggestions();
   };
 
-  // Phase 3: Handle AI suggestion selection
   const handleAiSuggestionSelect = (document) => {
     const isSelected = selectedDocuments.some(d => d.id === document.id);
     
     if (isSelected) {
-      // Remove from selection
       const newDocs = selectedDocuments.filter(d => d.id !== document.id);
       handleDocumentsSelected(newDocs);
     } else {
-      // Add to selection
       const newDocs = [...selectedDocuments, document];
       handleDocumentsSelected(newDocs);
     }
   };
 
-  // Phase 3: Update AI suggestions when template or context changes
   const updateAiSuggestions = async () => {
     if (!selectedTemplate) return;
 
@@ -281,11 +320,9 @@ const AiContentStudio = () => {
     }
   };
 
-  // Phase 3: Enhanced generation with learning
   const handleGenerateDocument = async () => {
     setGeneration({ loading: true, result: null, error: null });
     
-    // Phase 3: Track performance metrics
     const startTime = Date.now();
     
     try {
@@ -299,7 +336,6 @@ const AiContentStudio = () => {
           summary: d.summary
         })),
         documentAnalysis,
-        // Phase 3: Enhanced context
         userContext,
         performanceTracking: true
       });
@@ -313,17 +349,6 @@ const AiContentStudio = () => {
           error: null
         });
 
-        // Phase 3: Learn from successful generation
-        await learnFromGeneration({
-          templateId: selectedTemplate.id,
-          selectedDocuments,
-          qualityScore: response.data.result.metadata.qualityScore,
-          generationTime,
-          tokenUsage: response.data.result.metadata.tokenUsage,
-          userFeedback: null // Will be set later when user provides feedback
-        });
-
-        // Phase 3: Update performance metrics
         setPerformanceMetrics({
           generationTime,
           tokenUsage: response.data.result.metadata.tokenUsage,
@@ -348,19 +373,6 @@ const AiContentStudio = () => {
     }
   };
 
-  // Phase 3: Learning from generation outcomes
-  const learnFromGeneration = async (generationData) => {
-    try {
-      await api.post('/smart-rag/learn-from-generation', {
-        ...generationData,
-        userContext
-      });
-    } catch (error) {
-      console.error('Learning update failed:', error);
-    }
-  };
-
-  // Phase 3: Handle user feedback for learning
   const handleUserFeedback = async (feedbackData) => {
     try {
       await api.post('/smart-rag/user-feedback', {
@@ -370,7 +382,6 @@ const AiContentStudio = () => {
         userContext
       });
 
-      // Update AI suggestions based on feedback
       await updateAiSuggestions();
     } catch (error) {
       console.error('Feedback submission failed:', error);
@@ -467,7 +478,6 @@ const AiContentStudio = () => {
     }));
   };
 
-  // Validation function for template-specific required fields
   const validateForm = () => {
     if (!selectedTemplate) return { isValid: false, errors: [] };
     
@@ -635,32 +645,53 @@ const AiContentStudio = () => {
                 <Shield className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Policy Configuration</h3>
-                <p className="text-sm text-gray-500">Define policy type and compliance requirements</p>
+                <h3 className="text-lg font-medium text-gray-900">Policy Configuration & Legal Framework</h3>
+                <p className="text-sm text-gray-500">Define policy type, compliance requirements, and legal context</p>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Policy Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={generationForm.companyPolicy.policyType}
-                  onChange={(e) => updateTemplateSpecificField('companyPolicy', 'policyType', e.target.value)}
-                  className="pulse-one-select"
-                >
-                  <option value="">Select policy type...</option>
-                  <option value="remote-work">Remote Work Policy</option>
-                  <option value="code-of-conduct">Code of Conduct</option>
-                  <option value="data-protection">Data Protection Policy</option>
-                  <option value="health-safety">Health & Safety Policy</option>
-                  <option value="disciplinary">Disciplinary Procedures</option>
-                  <option value="leave-vacation">Leave & Vacation Policy</option>
-                  <option value="anti-harassment">Anti-Harassment Policy</option>
-                  <option value="expense-travel">Expense & Travel Policy</option>
-                  <option value="social-media">Social Media Policy</option>
-                  <option value="other">Other</option>
-                </select>
+            <div className="p-6 space-y-6">
+              
+              {/* Basic Policy Configuration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Policy Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={generationForm.companyPolicy.policyType}
+                    onChange={(e) => updateTemplateSpecificField('companyPolicy', 'policyType', e.target.value)}
+                    className="pulse-one-select"
+                  >
+                    <option value="">Select policy type...</option>
+                    <option value="remote-work">Remote Work Policy</option>
+                    <option value="code-of-conduct">Code of Conduct</option>
+                    <option value="data-protection">Data Protection Policy</option>
+                    <option value="health-safety">Health & Safety Policy</option>
+                    <option value="disciplinary">Disciplinary Procedures</option>
+                    <option value="leave-vacation">Leave & Vacation Policy</option>
+                    <option value="anti-harassment">Anti-Harassment Policy</option>
+                    <option value="expense-travel">Expense & Travel Policy</option>
+                    <option value="social-media">Social Media Policy</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Country/Jurisdiction <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={generationForm.legalFramework.country}
+                    onChange={(e) => updateFormField('legalFramework', 'country', e.target.value)}
+                    className="pulse-one-select"
+                  >
+                    {countries.map(country => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -677,17 +708,111 @@ const AiContentStudio = () => {
                 </select>
               </div>
 
+              {/* Legal Framework Integration */}
+              {selectedCountry && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Relevant Laws for {selectedCountry.name}:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCountry.laws.map((law, index) => (
+                      <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                        {law}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Enhanced Legal Requirements with Free Text */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Specific Legal Requirements</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Specific Legal Requirements
+                  <span className="text-sm font-normal text-gray-500 ml-2">(Select predefined or add custom)</span>
+                </label>
+                
+                {/* Predefined Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+                  {[
+                    'GDPR Compliance', 'SOX Requirements', 'Industry-specific regulations',
+                    'Data retention policies', 'Audit requirements', 'Safety standards'
+                  ].map(requirement => (
+                    <label key={requirement} className="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={generationForm.companyPolicy.legalRequirements.includes(requirement)}
+                        onChange={(e) => {
+                          const current = generationForm.companyPolicy.legalRequirements || '';
+                          const requirements = current.split(',').map(s => s.trim()).filter(Boolean);
+                          if (e.target.checked) {
+                            if (!requirements.includes(requirement)) {
+                              updateTemplateSpecificField('companyPolicy', 'legalRequirements', 
+                                [...requirements, requirement].join(', '));
+                            }
+                          } else {
+                            updateTemplateSpecificField('companyPolicy', 'legalRequirements', 
+                              requirements.filter(r => r !== requirement).join(', '));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{requirement}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Free Text Input */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Additional Custom Requirements (max 300 characters)
+                  </label>
+                  <textarea
+                    value={generationForm.companyPolicy.legalRequirements}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 300) {
+                        updateTemplateSpecificField('companyPolicy', 'legalRequirements', e.target.value);
+                      }
+                    }}
+                    placeholder="e.g., Specific local regulations, company-specific compliance needs..."
+                    rows={3}
+                    maxLength={300}
+                    className="pulse-one-input"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(generationForm.companyPolicy.legalRequirements || '').length}/300 characters
+                  </div>
+                </div>
+              </div>
+
+              {/* Specific Laws/Regulations */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Specific Laws/Regulations (Optional)
+                </label>
                 <textarea
-                  value={generationForm.companyPolicy.legalRequirements}
-                  onChange={(e) => updateTemplateSpecificField('companyPolicy', 'legalRequirements', e.target.value)}
-                  placeholder="e.g., GDPR compliance, SOX requirements, industry-specific regulations..."
-                  rows={3}
+                  value={generationForm.legalFramework.specificLaws}
+                  onChange={(e) => updateFormField('legalFramework', 'specificLaws', e.target.value)}
+                  placeholder="e.g., Article 2103 of Italian Civil Code, specific labor regulations..."
+                  rows={2}
                   className="pulse-one-input"
                 />
               </div>
 
+              {/* CCNL for Italy */}
+              {generationForm.legalFramework.country === 'IT' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contratti Collettivi (CCNL)
+                  </label>
+                  <textarea
+                    value={generationForm.legalFramework.collectiveAgreements}
+                    onChange={(e) => updateFormField('legalFramework', 'collectiveAgreements', e.target.value)}
+                    placeholder="e.g., CCNL Commercio, CCNL Metalmeccanici, specific collective agreements..."
+                    rows={2}
+                    className="pulse-one-input"
+                  />
+                </div>
+              )}
+
+              {/* Key Stakeholders */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Key Stakeholders</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1086,227 +1211,139 @@ const AiContentStudio = () => {
               {/* Template-specific form section */}
               {renderTemplateSpecificForm()}
 
-              {/* Phase 2: Document Selection Section (for all templates) */}
+              {/* Document Selection Section - Compact */}
               <div className="bg-white rounded-lg shadow-sm border">
-                <div className="flex items-center space-x-3 p-6 border-b border-gray-200">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <BookOpen className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">Document-Enhanced Generation</h3>
-                    <p className="text-sm text-gray-500">Select relevant documents to improve accuracy and add context</p>
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                      <BookOpen className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">Document-Enhanced Generation</h3>
+                      <p className="text-sm text-gray-500">Select documents to improve accuracy and context</p>
+                    </div>
                   </div>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
-                        <div className="text-center">
-                          <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                          <h4 className="text-lg font-medium text-gray-900 mb-2">Select Supporting Documents</h4>
-                          <p className="text-sm text-gray-600 mb-4">
-                            Choose documents from your library to provide context and improve generation accuracy
-                          </p>
+                
+                <div className="p-4">
+                  {/* Quick Stats Row */}
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="text-lg font-semibold text-blue-900">{selectedDocuments.length}</div>
+                      <div className="text-xs text-blue-600">Selected</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-lg font-semibold text-green-900">
+                        {documentAnalysis ? Math.round(documentAnalysis.avgRelevance * 100) + '%' : '--'}
+                      </div>
+                      <div className="text-xs text-green-600">Relevance</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-lg font-semibold text-purple-900">
+                        {performanceMetrics ? (performanceMetrics.generationTime / 1000).toFixed(1) + 's' : '--'}
+                      </div>
+                      <div className="text-xs text-purple-600">Last Gen</div>
+                    </div>
+                  </div>
+
+                  {/* Document Selection Area - Compact */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                    {selectedDocuments.length === 0 ? (
+                      <div className="text-center">
+                        <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-3">No documents selected</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowDocumentSelector(true)}
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                        >
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          Browse Library
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Selected Documents ({selectedDocuments.length})
+                          </h4>
                           <button
-                            type="button"
                             onClick={() => setShowDocumentSelector(true)}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="text-sm text-indigo-600 hover:text-indigo-700"
                           >
-                            <BookOpen className="w-4 h-4 mr-2" />
-                            Browse Documents
+                            Modify
                           </button>
                         </div>
                         
-                        {selectedDocuments.length > 0 && (
-                          <div className="mt-6 pt-6 border-t border-gray-200">
-                            <div className="flex items-center justify-between mb-3">
-                              <h5 className="text-sm font-medium text-gray-700">
-                                Selected Documents ({selectedDocuments.length})
-                              </h5>
+                        {/* Compact Document List */}
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {selectedDocuments.map(doc => (
+                            <div key={doc.id} className="flex items-center justify-between p-2 bg-indigo-50 rounded text-sm">
+                              <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                <FileText className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                                <span className="text-indigo-900 truncate">{doc.originalName || doc.filename}</span>
+                              </div>
                               <button
-                                onClick={() => setShowDocumentSelector(true)}
-                                className="text-sm text-indigo-600 hover:text-indigo-700"
+                                onClick={() => handleRemoveDocument(doc.id)}
+                                className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2"
                               >
-                                Modify Selection
+                                <X className="w-4 h-4" />
                               </button>
                             </div>
-                            <div className="space-y-2">
-                              {selectedDocuments.map(doc => (
-                                <div key={doc.id} className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
-                                  <div className="flex items-center space-x-3">
-                                    <FileText className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-medium text-indigo-900 truncate">
-                                        {doc.originalName}
-                                      </p>
-                                      {doc.summary && (
-                                        <p className="text-xs text-indigo-700 truncate">
-                                          {doc.summary.substring(0, 100)}...
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => handleRemoveDocument(doc.id)}
-                                    className="text-red-500 hover:text-red-700 flex-shrink-0"
-                                    title="Remove document"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="lg:col-span-1">
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-900 mb-2">Document Benefits</h4>
-                        <ul className="text-sm text-blue-800 space-y-1">
-                          <li className="flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-2 text-blue-600" />
-                            Higher accuracy
-                          </li>
-                          <li className="flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-2 text-blue-600" />
-                            Company-specific context
-                          </li>
-                          <li className="flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-2 text-blue-600" />
-                            Improved compliance
-                          </li>
-                          <li className="flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-2 text-blue-600" />
-                            Source attribution
-                          </li>
-                        </ul>
+                          ))}
+                        </div>
                         
+                        {/* Analysis Summary - Compact */}
                         {documentAnalysis && (
-                          <div className="mt-4 pt-4 border-t border-blue-200">
-                            <h5 className="font-medium text-blue-900 mb-2">Document Analysis</h5>
-                            <div className="text-xs text-blue-700">
-                              <div className="flex justify-between">
-                                <span>Relevance Score:</span>
-                                <span className="font-medium">{Math.round(documentAnalysis.avgRelevance * 100)}%</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Coverage:</span>
-                                <span className="font-medium">{documentAnalysis.coverageAreas?.length || 0} areas</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Phase 3: Performance Metrics */}
-                        {performanceMetrics && (
-                          <div className="mt-4 pt-4 border-t border-blue-200">
-                            <h5 className="font-medium text-blue-900 mb-2">Performance</h5>
-                            <div className="text-xs text-blue-700">
-                              <div className="flex justify-between">
-                                <span>Generation Time:</span>
-                                <span className="font-medium">{(performanceMetrics.generationTime / 1000).toFixed(1)}s</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Quality Score:</span>
-                                <span className="font-medium">{Math.round(performanceMetrics.qualityScore * 100)}%</span>
-                              </div>
+                          <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="text-blue-700">
+                                Avg. Relevance: <strong>{Math.round(documentAnalysis.avgRelevance * 100)}%</strong>
+                              </span>
+                              <span className="text-blue-700">
+                                Coverage: <strong>{documentAnalysis.coverageAreas?.length || 0} areas</strong>
+                              </span>
                             </div>
                           </div>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Phase 3: AI Document Suggestions */}
-              {selectedTemplate && showAiSuggestions && (
-                <AiDocumentSuggestions
-                  templateId={selectedTemplate.id}
-                  userContext={userContext}
-                  onDocumentSelect={handleAiSuggestionSelect}
-                  selectedDocuments={selectedDocuments}
-                  isVisible={showAiSuggestions}
-                />
-              )}
-
-              {/* Legal Framework Section - Only for templates that need it */}
-              {selectedTemplate.formFields.includes('legalFramework') && (
+              {/* AI Document Suggestions - Compact */}
+              {selectedTemplate && (
                 <div className="bg-white rounded-lg shadow-sm border">
-                  <div className="flex items-center space-x-3 p-6 border-b border-gray-200">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                      <Scale className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">Legal Framework</h3>
-                      <p className="text-sm text-gray-500">Specify the legal context and compliance requirements</p>
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Country/Jurisdiction <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={generationForm.legalFramework.country}
-                        onChange={(e) => updateFormField('legalFramework', 'country', e.target.value)}
-                        className="pulse-one-select"
-                      >
-                        {countries.map(country => (
-                          <option key={country.code} value={country.code}>
-                            {country.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {selectedCountry && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="text-sm font-medium text-blue-900 mb-2">Relevant Laws for {selectedCountry.name}:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedCountry.laws.map((law, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                              {law}
-                            </span>
-                          ))}
-                        </div>
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Brain className="w-5 h-5 text-purple-600" />
                       </div>
-                    )}
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Specific Laws/Regulations
-                      </label>
-                      <textarea
-                        value={generationForm.legalFramework.specificLaws}
-                        onChange={(e) => updateFormField('legalFramework', 'specificLaws', e.target.value)}
-                        placeholder="e.g., Article 2103 of Italian Civil Code, specific labor regulations..."
-                        rows={3}
-                        className="pulse-one-input"
-                      />
-                    </div>
-
-                    {generationForm.legalFramework.country === 'IT' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Contratti Collettivi (CCNL)
-                        </label>
-                        <textarea
-                          value={generationForm.legalFramework.collectiveAgreements}
-                          onChange={(e) => updateFormField('legalFramework', 'collectiveAgreements', e.target.value)}
-                          placeholder="e.g., CCNL Commercio, CCNL Metalmeccanici, specific collective agreements..."
-                          rows={2}
-                          className="pulse-one-input"
-                        />
+                        <h3 className="text-lg font-medium text-gray-900">AI Document Suggestions</h3>
+                        <p className="text-sm text-gray-500">Smart recommendations to improve your document</p>
                       </div>
-                    )}
+                    </div>
+                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                      {aiSuggestions.length} suggestions
+                    </span>
+                  </div>
+                  
+                  <div className="p-4">
+                    <AiDocumentSuggestions
+                      templateId={selectedTemplate.id}
+                      userContext={userContext}
+                      onDocumentSelect={handleAiSuggestionSelect}
+                      selectedDocuments={selectedDocuments}
+                      isVisible={true}
+                      compact={true}
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Target Audience Section */}
+              {/* Target Audience Section - Enhanced */}
               <div className="bg-white rounded-lg shadow-sm border">
                 <div className="flex items-center space-x-3 p-6 border-b border-gray-200">
                   <div className="p-2 bg-purple-100 rounded-lg">
@@ -1319,25 +1356,101 @@ const AiContentStudio = () => {
                     <p className="text-sm text-gray-500">Who will use or be affected by this document?</p>
                   </div>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {targetAudienceOptions.map(option => (
-                      <label key={option.id} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input
-                          type="checkbox"
-                          checked={generationForm.targetAudience.includes(option.id)}
-                          onChange={() => toggleTargetAudience(option.id)}
-                          className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
-                        />
-                        <option.icon className="w-4 h-4 ml-3 mr-2 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
+                <div className="p-6 space-y-4">
+                  
+                  {/* Predefined Audience Options */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Select Predefined Audiences</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {targetAudienceOptions.map(option => (
+                        <label key={option.id} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={generationForm.targetAudience.includes(option.id)}
+                            onChange={() => toggleTargetAudience(option.id)}
+                            className="rounded border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
+                          />
+                          <option.icon className="w-4 h-4 ml-3 mr-2 text-gray-500" />
+                          <span className="text-sm font-medium text-gray-700">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Custom Audience Input */}
+                  <div className="border-t pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Additional Custom Audience
+                      <span className="text-sm font-normal text-gray-500 ml-2">(max 150 characters)</span>
+                    </label>
+                    <textarea
+                      value={customTargetAudience}
+                      onChange={(e) => {
+                        if (e.target.value.length <= 150) {
+                          setCustomTargetAudience(e.target.value);
+                          const customId = 'custom_audience';
+                          if (e.target.value.trim()) {
+                            if (!generationForm.targetAudience.includes(customId)) {
+                              setGenerationForm(prev => ({
+                                ...prev,
+                                targetAudience: [...prev.targetAudience, customId],
+                                customTargetAudience: e.target.value
+                              }));
+                            } else {
+                              setGenerationForm(prev => ({
+                                ...prev,
+                                customTargetAudience: e.target.value
+                              }));
+                            }
+                          } else {
+                            setGenerationForm(prev => ({
+                              ...prev,
+                              targetAudience: prev.targetAudience.filter(id => id !== customId),
+                              customTargetAudience: ''
+                            }));
+                          }
+                        }
+                      }}
+                      placeholder="e.g., Remote employees in specific regions, contractors, specific departments..."
+                      rows={2}
+                      maxLength={150}
+                      className="pulse-one-input"
+                    />
+                    <div className="text-xs text-gray-500 mt-1 flex justify-between">
+                      <span>{customTargetAudience.length}/150 characters</span>
+                      {customTargetAudience.trim() && (
+                        <span className="text-green-600">✓ Custom audience added</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Summary of Selected Audiences */}
+                  {generationForm.targetAudience.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-3 border-t">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Audiences:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {generationForm.targetAudience.map(audienceId => {
+                          if (audienceId === 'custom_audience') {
+                            return customTargetAudience ? (
+                              <span key={audienceId} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                Custom: {customTargetAudience.substring(0, 30)}{customTargetAudience.length > 30 ? '...' : ''}
+                              </span>
+                            ) : null;
+                          }
+                          const option = targetAudienceOptions.find(opt => opt.id === audienceId);
+                          return option ? (
+                            <span key={audienceId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              {option.label}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Context Section */}
+              {/* Context Section - Streamlined */}
               <div className="bg-white rounded-lg shadow-sm border">
                 <div className="flex items-center space-x-3 p-6 border-b border-gray-200">
                   <div className="p-2 bg-green-100 rounded-lg">
@@ -1345,13 +1458,13 @@ const AiContentStudio = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">Context & Purpose</h3>
-                    <p className="text-sm text-gray-500">Provide background information to improve AI generation</p>
+                    <p className="text-sm text-gray-500">Provide background to improve AI generation quality</p>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Reasons for Creating This Document
+                      Purpose & Reasons for Creating This Document
                     </label>
                     <textarea
                       value={generationForm.context.reasons}
@@ -1364,25 +1477,31 @@ const AiContentStudio = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Scope and Coverage
+                      Scope & Coverage
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        (What areas/activities does this document cover - different from target audience)
+                      </span>
                     </label>
                     <textarea
                       value={generationForm.context.scope}
                       onChange={(e) => updateFormField('context', 'scope', e.target.value)}
-                      placeholder="e.g., Applies to all full-time employees, covers remote work policies, specific to Italian operations..."
+                      placeholder="e.g., Applies to all remote work activities, covers data handling procedures, specific to Italian operations, includes vendor management..."
                       rows={2}
                       className="pulse-one-input"
                     />
+                    <div className="text-xs text-gray-500 mt-1">
+                      <strong>Tip:</strong> Scope defines WHAT is covered; Target Audience defines WHO it applies to
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Information
+                      Additional Context & Special Requirements
                     </label>
                     <textarea
                       value={generationForm.context.additionalInfo}
                       onChange={(e) => updateFormField('context', 'additionalInfo', e.target.value)}
-                      placeholder="Any other relevant information, special considerations, or requirements..."
+                      placeholder="Any other relevant information, special considerations, industry context, or unique requirements..."
                       rows={2}
                       className="pulse-one-input"
                     />
@@ -1390,18 +1509,20 @@ const AiContentStudio = () => {
                 </div>
               </div>
 
-              {/* Output Configuration Section */}
+              {/* Output Configuration Section - Enhanced */}
               <div className="bg-white rounded-lg shadow-sm border">
                 <div className="flex items-center space-x-3 p-6 border-b border-gray-200">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <Settings className="w-5 h-5 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Output Configuration</h3>
-                    <p className="text-sm text-gray-500">Define how the document should be generated</p>
+                    <h3 className="text-lg font-medium text-gray-900">Output Configuration & Estimation</h3>
+                    <p className="text-sm text-gray-500">Define output format and view usage estimates</p>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-6">
+                  
+                  {/* Language and Tone */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
@@ -1433,16 +1554,19 @@ const AiContentStudio = () => {
                     </div>
                   </div>
 
+                  {/* Expected Length with Token Estimation */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Expected Length</label>
-                    <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Expected Length & Token Estimation
+                    </label>
+                    <div className="space-y-3">
                       {[
-                        { value: 'brief', label: 'Brief (1-2 pages)', description: 'Concise overview with key points' },
-                        { value: 'medium', label: 'Standard (3-5 pages)', description: 'Comprehensive coverage with details' },
-                        { value: 'detailed', label: 'Detailed (6-10 pages)', description: 'In-depth analysis with examples' },
-                        { value: 'comprehensive', label: 'Comprehensive (10+ pages)', description: 'Complete documentation with appendices' }
+                        { value: 'brief', label: 'Brief (1-2 pages)', description: 'Concise overview with key points', pages: '1-2', tokens: '~1,200' },
+                        { value: 'medium', label: 'Standard (3-5 pages)', description: 'Comprehensive coverage with details', pages: '3-5', tokens: '~2,500' },
+                        { value: 'detailed', label: 'Detailed (6-10 pages)', description: 'In-depth analysis with examples', pages: '6-10', tokens: '~4,000' },
+                        { value: 'comprehensive', label: 'Comprehensive (10+ pages)', description: 'Complete documentation with appendices', pages: '10+', tokens: '~6,500' }
                       ].map(option => (
-                        <label key={option.value} className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <label key={option.value} className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 relative">
                           <input
                             type="radio"
                             name="expectedLength"
@@ -1451,15 +1575,60 @@ const AiContentStudio = () => {
                             onChange={(e) => updateFormField('output', 'expectedLength', e.target.value)}
                             className="mt-1 border-gray-300 text-charcoal-600 focus:ring-charcoal-500"
                           />
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-700">{option.label}</div>
-                            <div className="text-xs text-gray-500">{option.description}</div>
+                          <div className="ml-3 flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                              <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                {option.tokens} tokens
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">{option.description}</div>
+                            <div className="text-xs text-blue-600 mt-1">{option.pages} pages estimated</div>
                           </div>
                         </label>
                       ))}
                     </div>
                   </div>
 
+                  {/* Current Estimation Panel */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-blue-900 flex items-center">
+                        <Activity className="w-4 h-4 mr-2" />
+                        Current Estimation
+                      </h4>
+                      <button 
+                        onClick={() => setEstimatedTokens(estimateTokenUsage(generationForm))}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <div className="text-xs text-blue-600 font-medium">Input Tokens</div>
+                        <div className="text-blue-900 font-semibold">{estimatedTokens.input.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-blue-600 font-medium">Output Tokens</div>
+                        <div className="text-blue-900 font-semibold">{estimatedTokens.output.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-blue-600 font-medium">Total Tokens</div>
+                        <div className="text-blue-900 font-semibold">{estimatedTokens.total.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-blue-600 font-medium">Est. Cost</div>
+                        <div className="text-blue-900 font-semibold">${estimatedTokens.cost.toFixed(3)}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-blue-700 mt-2">
+                      <Info className="w-3 h-3 inline mr-1" />
+                      Estimates are approximate. Actual usage may vary based on content complexity.
+                    </div>
+                  </div>
+
+                  {/* Consultant Features */}
                   <div className="space-y-3">
                     <div>
                       <label className="flex items-center">
@@ -1474,7 +1643,7 @@ const AiContentStudio = () => {
                         </span>
                       </label>
                       <p className="text-xs text-gray-500 mt-1 ml-6">
-                        AI will explain why certain approaches were chosen and provide implementation guidance
+                        AI will explain why certain approaches were chosen and provide implementation guidance (+15% tokens)
                       </p>
                     </div>
 
@@ -1491,7 +1660,7 @@ const AiContentStudio = () => {
                         </span>
                       </label>
                       <p className="text-xs text-gray-500 mt-1 ml-6">
-                        Display AI confidence levels (e.g., 85%) for each section and recommendation
+                        Display AI confidence levels (e.g., 85%) for each section and recommendation (+5% tokens)
                       </p>
                     </div>
                   </div>
@@ -1667,7 +1836,7 @@ const AiContentStudio = () => {
           onDownload={handleDownloadDocument}
         />
 
-        {/* Phase 2: Document Selector Modal */}
+        {/* Document Selector Modal */}
         <DocumentSelector
           isOpen={showDocumentSelector}
           onClose={() => setShowDocumentSelector(false)}
@@ -1750,8 +1919,8 @@ const AiContentStudio = () => {
         {/* Tab Content */}
         <div className="p-6">
           {activeTab === 'hr-docs' && (
-            <div className="space-y-6">
-              {/* Category Headers */}
+            <div className="space-y-8">
+              {/* Hard HR Activities */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-red-600" />
@@ -1775,15 +1944,12 @@ const AiContentStudio = () => {
                             {getDifficultyBadge(template.difficulty)}
                           </div>
                         </div>
-                        
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">{template.title}</h3>
                         <p className="text-sm text-gray-600 mb-4">{template.description}</p>
-                        
                         <div className="flex items-center text-xs text-gray-500 mb-4">
                           <Clock className="w-3 h-3 mr-1" />
                           {template.estimatedTime}
                         </div>
-                        
                         <div className="space-y-2 mb-4">
                           <p className="text-xs font-medium text-gray-700">Key Features:</p>
                           <ul className="text-xs text-gray-600 space-y-1">
@@ -1795,7 +1961,6 @@ const AiContentStudio = () => {
                             ))}
                           </ul>
                         </div>
-                        
                         <button
                           onClick={() => handleTemplateSelect(template)}
                           className="w-full bg-charcoal-600 text-white py-2 px-4 rounded-lg hover:bg-charcoal-700 transition-colors flex items-center justify-center"
@@ -1809,6 +1974,7 @@ const AiContentStudio = () => {
                 </div>
               </div>
 
+              {/* Soft HR Activities */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Users className="w-5 h-5 mr-2 text-blue-600" />
@@ -1832,15 +1998,12 @@ const AiContentStudio = () => {
                             {getDifficultyBadge(template.difficulty)}
                           </div>
                         </div>
-                        
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">{template.title}</h3>
                         <p className="text-sm text-gray-600 mb-4">{template.description}</p>
-                        
                         <div className="flex items-center text-xs text-gray-500 mb-4">
                           <Clock className="w-3 h-3 mr-1" />
                           {template.estimatedTime}
                         </div>
-                        
                         <div className="space-y-2 mb-4">
                           <p className="text-xs font-medium text-gray-700">Key Features:</p>
                           <ul className="text-xs text-gray-600 space-y-1">
@@ -1852,7 +2015,6 @@ const AiContentStudio = () => {
                             ))}
                           </ul>
                         </div>
-                        
                         <button
                           onClick={() => handleTemplateSelect(template)}
                           className="w-full bg-charcoal-600 text-white py-2 px-4 rounded-lg hover:bg-charcoal-700 transition-colors flex items-center justify-center"

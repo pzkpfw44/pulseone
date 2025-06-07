@@ -149,10 +149,12 @@ const CompanyLibrary = () => {
         case 'name-desc':
           return (b.filename || b.title || '').localeCompare(a.filename || a.title || '');
         case 'date-asc':
-          return new Date(a.uploadedAt || a.createdAt) - new Date(b.uploadedAt || b.createdAt);
+          // FIX: Use Date.parse() for numeric comparison, avoiding non-serializable Date objects.
+          return Date.parse(a.uploadedAt || a.createdAt) - Date.parse(b.uploadedAt || b.createdAt);
         case 'date-desc':
         default:
-          return new Date(b.uploadedAt || b.createdAt) - new Date(a.uploadedAt || a.createdAt);
+          // FIX: Use Date.parse() for numeric comparison, avoiding non-serializable Date objects.
+          return Date.parse(b.uploadedAt || b.createdAt) - Date.parse(a.uploadedAt || a.createdAt);
       }
     });
 
@@ -225,6 +227,18 @@ const CompanyLibrary = () => {
     }
   };
 
+  // FIX: Create a helper function to safely format date strings for display.
+  const SafeFormattedDate = ({ dateString }) => {
+    if (!dateString) return null;
+    try {
+      // Only create the Date object for formatting, it doesn't get stored in state.
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      // If the date string is invalid, return it as is or return nothing.
+      return dateString; 
+    }
+  };
+  
   const DocumentCard = ({ document, type }) => {
     // Handle different field names between fed documents and generated documents
     const getDocumentTitle = () => {
@@ -235,7 +249,7 @@ const CompanyLibrary = () => {
     };
 
     const getDocumentDate = () => {
-      return document.uploadedAt || document.createdAt || new Date();
+      return document.uploadedAt || document.createdAt;
     };
 
     const getDocumentSize = () => {
@@ -262,7 +276,8 @@ const CompanyLibrary = () => {
                     {document.category.replace('_', ' ')}
                   </span>
                 )}
-                {new Date(getDocumentDate()).toLocaleDateString()}
+                {/* FIX: Use the safe date formatting component */}
+                <SafeFormattedDate dateString={getDocumentDate()} />
               </p>
             </div>
           </div>

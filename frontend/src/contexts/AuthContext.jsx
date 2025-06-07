@@ -3,6 +3,25 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+/**
+ * Creates a "plain" user object to ensure it's serializable.
+ * This prevents errors with Redux Toolkit's state management.
+ * NOTE: You may need to adjust the properties here (e.g., id, name, email)
+ * to match what your API actually returns for the user.
+ */
+const serializeUser = (user) => {
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    // Add any other essential user properties here
+    // For example:
+    // role: user.role,
+    // avatarUrl: user.avatarUrl,
+  };
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -31,7 +50,8 @@ export const AuthProvider = ({ children }) => {
 
       // Verify token by getting user profile
       const response = await api.get('/auth/profile');
-      setUser(response.data);
+      // Use the serializeUser helper function before setting state
+      setUser(serializeUser(response.data));
       setLoading(false);
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -46,13 +66,13 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const response = await api.post('/auth/login', { email, password });
       
-      const { token, user } = response.data;
+      const { token, user: userFromApi } = response.data;
       
       // Store token
       localStorage.setItem('token', token);
       
-      // Update state
-      setUser(user);
+      // Update state using the serialized user object
+      setUser(serializeUser(userFromApi));
       
       return { success: true };
     } catch (error) {

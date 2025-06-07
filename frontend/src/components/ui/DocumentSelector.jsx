@@ -1,4 +1,4 @@
-// frontend/src/components/ui/DocumentSelector.jsx - Phase 2
+// frontend/src/components/ui/DocumentSelector.jsx
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Search, Filter, Eye, Check, X, 
@@ -67,18 +67,71 @@ const DocumentSelector = ({
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/company-library/documents', {
-        params: {
-          includeChunks: false,
-          status: 'processed'
+      // Try the company library endpoint first
+      let response;
+      try {
+        response = await api.get('/company-library/fed-documents', {
+          params: {
+            includeChunks: false,
+            status: 'processed',
+            limit: 1000 // Get more documents for selection
+          }
+        });
+        
+        if (response.data.success && response.data.documents) {
+          // Transform the response to match expected format
+          const transformedDocs = response.data.documents.map(doc => ({
+            id: doc.id,
+            originalName: doc.filename,
+            category: doc.category,
+            size: doc.size,
+            summary: doc.summary,
+            aiGeneratedTags: doc.tags || [],
+            userTags: [],
+            createdAt: doc.uploadedAt,
+            status: doc.status,
+            wordCount: doc.wordCount,
+            metadata: { wordCount: doc.wordCount }
+          }));
+          setDocuments(transformedDocs);
         }
-      });
+      } catch (fedDocsError) {
+        console.warn('Fed documents endpoint failed, trying alternative:', fedDocsError.message);
+        
+        // Fallback to the original documents endpoint
+        response = await api.get('/company-library/documents', {
+          params: {
+            includeChunks: false,
+            status: 'processed'
+          }
+        });
 
-      if (response.data.success) {
-        setDocuments(response.data.documents || []);
+        if (response.data.success) {
+          setDocuments(response.data.documents || []);
+        }
       }
+
+      // If still no documents, check if any exist at all
+      if (!response.data.documents || response.data.documents.length === 0) {
+        try {
+          const overviewResponse = await api.get('/company-library/overview');
+          if (overviewResponse.data.success) {
+            const totalDocs = overviewResponse.data.overview.fedDocuments;
+            if (totalDocs === 0) {
+              console.log('No documents found in library');
+            } else {
+              console.warn(`Library shows ${totalDocs} documents but none returned by API`);
+            }
+          }
+        } catch (overviewError) {
+          console.warn('Could not fetch library overview:', overviewError.message);
+        }
+      }
+
     } catch (error) {
       console.error('Error fetching documents:', error);
+      // Show user-friendly error message
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -305,13 +358,33 @@ const DocumentSelector = ({
           ) : sortedAndFilteredDocuments.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
-              <p className="text-gray-600">
-                {searchTerm || selectedCategory !== 'all' 
-                  ? 'Try adjusting your search or filter criteria'
-                  : 'Upload documents to your company library to get started'
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {documents.length === 0 ? 'No documents in library' : 'No documents found'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {documents.length === 0 
+                  ? 'Upload documents to your company library to get started'
+                  : searchTerm || selectedCategory !== 'all' 
+                    ? 'Try adjusting your search or filter criteria'
+                    : 'No documents match the current filters'
                 }
               </p>
+              {documents.length === 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Troubleshooting:</p>
+                  <ul className="text-xs text-gray-500 space-y-1">
+                    <li>• Check if documents have been uploaded to the Company Library</li>
+                    <li>• Ensure documents have been processed successfully</li>
+                    <li>• Try refreshing the page</li>
+                  </ul>
+                  <button
+                    onClick={fetchDocuments}
+                    className="mt-3 text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    Retry Loading Documents
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -371,6 +444,12 @@ const DocumentSelector = ({
                               <BarChart3 className="w-3 h-3 mr-1" />
                               {(doc.size / 1024).toFixed(1)} KB
                             </div>
+                            {doc.wordCount && (
+                              <div className="flex items-center">
+                                <FileText className="w-3 h-3 mr-1" />
+                                {doc.wordCount} words
+                              </div>
+                            )}
                           </div>
                           
                           {doc.aiGeneratedTags && doc.aiGeneratedTags.length > 0 && (
@@ -413,11 +492,17 @@ const DocumentSelector = ({
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <div className="text-sm text-gray-600">
-            {sortedAndFilteredDocuments.length} documents available
-            {templateId && Object.keys(documentRelevance).length > 0 && (
-              <span className="ml-2">
-                • Sorted by relevance to {templateRecommendations[templateId]?.description.split(' ')[0]} generation
-              </span>
+            {documents.length > 0 ? (
+              <>
+                {sortedAndFilteredDocuments.length} of {documents.length} documents shown
+                {templateId && Object.keys(documentRelevance).length > 0 && (
+                  <span className="ml-2">
+                    • Sorted by relevance to {templateRecommendations[templateId]?.description.split(' ')[0]} generation
+                  </span>
+                )}
+              </>
+            ) : (
+              <span>No documents available in library</span>
             )}
           </div>
           
@@ -430,7 +515,8 @@ const DocumentSelector = ({
             </button>
             <button
               onClick={handleConfirmSelection}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={localSelectedDocs.length === 0}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Use Selected Documents ({localSelectedDocs.length})
             </button>
